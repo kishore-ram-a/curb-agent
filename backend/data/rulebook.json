@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "immutable": true,
+  "forbidden_actions": ["towing", "impoundment", "fines", "penalties"],
+  "rules": [
+    {
+      "id": "R1",
+      "type": "no_standing",
+      "vehicle_types": ["freight", "personal"],
+      "start": "07:30",
+      "end": "08:30",
+      "text": "No standing on the curb between 07:30 and 08:30."
+    },
+    {
+      "id": "R2",
+      "type": "freight_window",
+      "vehicle_types": ["freight"],
+      "start": "11:00",
+      "end": "13:00",
+      "text": "Freight vehicles may use the curb only between 11:00 and 13:00."
+    },
+    {
+      "id": "R3",
+      "type": "bus_bay_reserved",
+      "vehicle_types": ["bus"],
+      "slot_types": ["bus_bay"],
+      "text": "The bus bay is reserved for buses."
+    }
+  ]
+}

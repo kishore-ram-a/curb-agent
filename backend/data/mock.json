@@ -1,0 +1,97 @@
+{
+  "campus": "Campus Gate 2 (10 m curb)",
+  "zones": {
+    "bus_bay": {
+      "label": "Bus bay",
+      "capacity": 0
+    },
+    "school_line": {
+      "label": "School line",
+      "capacity": 1
+    },
+    "delivery_bay": {
+      "label": "Delivery bay",
+      "capacity": 1
+    }
+  },
+  "school_exit": {
+    "start": "12:30",
+    "end": "12:50",
+    "expected_cars": 18
+  },
+  "bus_trace": [
+    {
+      "bus": "B12",
+      "arrives": "08:10",
+      "dwell": 5,
+      "delay_if_blocked_min": 6
+    },
+    {
+      "bus": "B7",
+      "arrives": "09:40",
+      "dwell": 5,
+      "delay_if_blocked_min": 5
+    },
+    {
+      "bus": "B12",
+      "arrives": "11:20",
+      "dwell": 5,
+      "delay_if_blocked_min": 6
+    },
+    {
+      "bus": "B21",
+      "arrives": "12:10",
+      "dwell": 8,
+      "delay_if_blocked_min": 7
+    },
+    {
+      "bus": "B7",
+      "arrives": "13:20",
+      "dwell": 5,
+      "delay_if_blocked_min": 5
+    }
+  ],
+  "bookings": [
+    {
+      "id": "T1",
+      "vendor": "Sri Sai Traders",
+      "phone": "+91 90000 11111",
+      "kind": "freight",
+      "start": "12:00",
+      "duration": 45,
+      "zone": "school_line"
+    },
+    {
+      "id": "T2",
+      "vendor": "Amman Dairy",
+      "phone": "+91 90000 22222",
+      "kind": "freight",
+      "start": "12:05",
+      "duration": 20,
+      "zone": "bus_bay"
+    },
+    {
+      "id": "T3",
+      "vendor": "Fresh Basket",
+      "phone": "+91 90000 33333",
+      "kind": "freight",
+      "start": "09:15",
+      "duration": 30,
+      "zone": "delivery_bay"
+    },
+    {
+      "id": "T4",
+      "vendor": "Kumar Stationers",
+      "phone": "+91 90000 44444",
+      "kind": "freight",
+      "start": "13:30",
+      "duration": 30,
+      "zone": "delivery_bay"
+    }
+  ],
+  "routes": {
+    "bus_bay": "Bus lane (Gate 2)",
+    "school_line": "Main road approach",
+    "delivery_bay": "Service lane (Gate 3)"
+  }
+}

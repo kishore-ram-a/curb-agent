@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: curb-agent-api
+    runtime: python
+    plan: 0.5c-512mb
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    numInstances: 1
+    disk:
+      name: curb-agent-state
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: CURB_STATE_FILE
+        value: /var/data/state.json
