@@ -267,6 +267,233 @@ function Login({ onDone }) {
   )
 }
 
+function OperatorProfile({ initial, onSaved, onCancel }) {
+  const [profile, setProfile] = useState(
+    initial || {
+      full_name: '',
+      role: '',
+      email: '',
+      phone: '',
+      organization: '',
+    },
+  )
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const submit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const result = await api('/profile', 'POST', profile)
+      onSaved(result.user)
+    } catch (exception) {
+      setError(exception.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+  const update = (key, value) =>
+    setProfile((current) => ({ ...current, [key]: value }))
+  return (
+    <main className='profile-shell'>
+      <form className='card profile-form' onSubmit={submit}>
+        <p className='eyebrow'>CURB OPERATIONS · OPERATOR SETUP</p>
+        <h1>{initial ? 'Your operator details' : 'Welcome to Curb Agent'}</h1>
+        <p className='sub'>
+          Add the details that will identify your operational actions.
+        </p>
+        <div className='profile-fields'>
+          <label>
+            Full name
+            <input
+              required
+              maxLength='100'
+              autoComplete='name'
+              value={profile.full_name}
+              onChange={(e) => update('full_name', e.target.value)}
+            />
+          </label>
+          <label>
+            Role / title
+            <input
+              required
+              value={profile.role}
+              onChange={(e) => update('role', e.target.value)}
+              placeholder='Traffic operations officer'
+            />
+          </label>
+          <label>
+            Work email
+            <input
+              required
+              type='email'
+              autoComplete='email'
+              value={profile.email}
+              onChange={(e) => update('email', e.target.value)}
+            />
+          </label>
+          <label>
+            Phone
+            <input
+              required
+              type='tel'
+              autoComplete='tel'
+              value={profile.phone}
+              onChange={(e) => update('phone', e.target.value)}
+            />
+          </label>
+          <label>
+            Organization
+            <input
+              required
+              maxLength='120'
+              autoComplete='organization'
+              value={profile.organization}
+              onChange={(e) => update('organization', e.target.value)}
+            />
+          </label>
+        </div>
+        {error && <div className='err'>{error}</div>}
+        <div className='form profile-actions'>
+          <button disabled={saving}>
+            {saving
+              ? initial
+                ? 'Saving…'
+                : 'Saving and starting agent…'
+              : 'Save operator details'}
+          </button>
+          {onCancel && (
+            <button type='button' className='ghost-btn' onClick={onCancel}>
+              Cancel
+            </button>
+          )}
+        </div>
+      </form>
+    </main>
+  )
+}
+
+function ActionSummary({ plan, insights, outbox, operator, briefing }) {
+  if (!plan || !insights) return null
+  const actions = plan.actions || []
+  const moved = actions.filter((action) => action.status === 'moved')
+  const referred = actions.filter((action) => action.status === 'inspector')
+  const kept = actions.filter(
+    (action) => action.status === 'kept' || action.status === 'approved',
+  )
+  const completed = outbox.filter((message) =>
+    ['sent', 'confirmed'].includes(message.status),
+  )
+  const delivered = completed.filter(
+    (message) => message.gateway !== 'mock-gateway',
+  )
+  const simulated = completed.filter(
+    (message) => message.gateway === 'mock-gateway',
+  )
+  const failed = outbox.filter((message) => message.status === 'failed')
+  return (
+    <section className='card action-summary' aria-live='polite'>
+      <div className='summary-heading'>
+        <div>
+          <p className='eyebrow'>LATEST AGENT RUN</p>
+          <h2>Action summary</h2>
+        </div>
+        <span className='badge ok'>
+          {plan.checks?.lockup_free ? 'Plan validated' : 'Review plan checks'}
+        </span>
+      </div>
+      {operator && (
+        <p className='summary-operator'>
+          Prepared by <b>{operator.full_name}</b> · {operator.role} ·{' '}
+          {operator.organization}
+        </p>
+      )}
+      <p className='brief'>{briefing || insights.briefing}</p>
+      <div className='summary-stats'>
+        <div>
+          <strong>{moved.length}</strong>
+          <span>re-allocated</span>
+        </div>
+        <div>
+          <strong>{kept.length}</strong>
+          <span>kept in place</span>
+        </div>
+        <div>
+          <strong>{referred.length}</strong>
+          <span>inspector referrals</span>
+        </div>
+        <div>
+          <strong>{delivered.length}</strong>
+          <span>instructions delivered</span>
+        </div>
+        <div>
+          <strong>{simulated.length}</strong>
+          <span>demo instructions simulated</span>
+        </div>
+        <div>
+          <strong>{failed.length}</strong>
+          <span>notifications failed</span>
+        </div>
+        <div>
+          <strong>{plan.metrics?.bus_delay_saved_min ?? 0} min</strong>
+          <span>bus delay avoided</span>
+        </div>
+      </div>
+      {(moved.length > 0 || referred.length > 0 || kept.length > 0) && (
+        <div className='summary-decisions'>
+          {moved.map((action) => (
+            <div key={action.id}>
+              <span className='summary-mark moved-mark'>↗</span>
+              <b>{action.vendor}</b>
+              <span>
+                {action.old_slot} {action.old_start} → {action.slot}{' '}
+                {action.new_start}
+              </span>
+            </div>
+          ))}
+          {referred.map((action) => (
+            <div key={action.id}>
+              <span className='summary-mark review-mark'>!</span>
+              <b>{action.vendor}</b>
+              <span>
+                Referred to inspector · {action.old_slot} {action.old_start}
+              </span>
+            </div>
+          ))}
+          {kept.map((action) => (
+            <div key={action.id}>
+              <span className='summary-mark kept-mark'>✓</span>
+              <b>{action.vendor}</b>
+              <span>
+                Kept in place · {action.slot} {action.new_start}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {outbox.length > 0 && (
+        <details className='summary-messages'>
+          <summary>Notification details ({outbox.length})</summary>
+          <div>
+            {outbox
+              .slice(-5)
+              .reverse()
+              .map((message) => (
+                <article key={message.id}>
+                  <span className={'pill ' + message.status}>
+                    {message.status}
+                  </span>
+                  <b>{message.to}</b>
+                  <p>{message.text}</p>
+                </article>
+              ))}
+          </div>
+        </details>
+      )}
+    </section>
+  )
+}
+
 /* ---------------- Workflow stepper ---------------- */
 function Workflow({ steps, shown, running }) {
   if (!steps.length && !running)
@@ -798,11 +1025,12 @@ function Bookings({ data, refresh, setMsg, run }) {
     duration: 15,
     reason: 'Car broke down in bus bay',
   })
-  const act = async (fn) => {
+  const act = async (fn, runAgent = false) => {
     try {
       await fn()
-      await refresh()
       setMsg('')
+      if (runAgent) await run()
+      else await refresh()
     } catch (e) {
       setMsg(e.message)
     }
@@ -879,7 +1107,7 @@ function Bookings({ data, refresh, setMsg, run }) {
                   <button
                     className='link'
                     onClick={() =>
-                      act(() => api('/bookings/' + b.id, 'DELETE'))
+                      act(() => api('/bookings/' + b.id, 'DELETE'), true)
                     }
                   >
                     remove
@@ -914,7 +1142,7 @@ function Bookings({ data, refresh, setMsg, run }) {
             value={f.duration}
             onChange={(e) => setF({ ...f, duration: +e.target.value })}
           />
-          <button onClick={() => act(() => api('/bookings', 'POST', f))}>
+          <button onClick={() => act(() => api('/bookings', 'POST', f), true)}>
             Add booking
           </button>
         </div>
@@ -946,13 +1174,15 @@ function Bookings({ data, refresh, setMsg, run }) {
             value={inc.reason}
             onChange={(e) => setInc({ ...inc, reason: e.target.value })}
           />
-          <button onClick={() => act(() => api('/incidents', 'POST', inc))}>
+          <button
+            onClick={() => act(() => api('/incidents', 'POST', inc), true)}
+          >
             Report incident
           </button>
           {data.incidents.length > 0 && (
             <button
               className='ghost-btn'
-              onClick={() => act(() => api('/incidents', 'DELETE'))}
+              onClick={() => act(() => api('/incidents', 'DELETE'), true)}
             >
               Clear
             </button>
@@ -1535,6 +1765,7 @@ export default function App() {
   })
   const [authed, setAuthed] = useState(hasToken())
   const [data, setData] = useState(null)
+  const [editingProfile, setEditingProfile] = useState(false)
   const [tab, setTab] = useState('workflow')
   const [busy, setBusy] = useState(false),
     [useLlm, setUseLlm] = useState(true),
@@ -1562,6 +1793,38 @@ export default function App() {
     const d = await api('/state')
     setData(d)
     setNow((n) => n ?? toMin(d.plan_window.start))
+  }
+  const run = async () => {
+    setBusy(true)
+    setShown(0)
+    setMsg('')
+    try {
+      const currentTime = data
+        ? hhmm(now ?? toMin(data.plan_window.start))
+        : undefined
+      const r = await api('/workflow/run', 'POST', {
+        use_llm: useLlm,
+        auto_reply: autoReply,
+        current_time: currentTime,
+      })
+      setData((current) => ({
+        ...current,
+        plan: r.plan,
+        steps: r.steps,
+        outbox: r.outbox,
+        insights: r.insights,
+        last_agent_briefing: r.last_agent_briefing,
+        guard_log: r.guard_log,
+      }))
+      r.steps.forEach((_, i) =>
+        setTimeout(() => setShown(i + 1), 350 * (i + 1)),
+      )
+      await refresh()
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
   }
   useEffect(() => {
     if (authed) refresh().catch((e) => setMsg(e.message))
@@ -1598,6 +1861,7 @@ export default function App() {
     socket.onopen = () => {
       setGpsStatus('Live GPS stream')
       const emit = () => {
+        if (socket.readyState !== WebSocket.OPEN) return
         const vehicle = vehicles[sequence % vehicles.length]
         const delayProfile = [0, 4, 10, 10, 4, 0]
         const delay =
@@ -1647,7 +1911,10 @@ export default function App() {
       }
     }
     socket.onerror = () => setGpsStatus('GPS stream unavailable')
-    socket.onclose = () => setGpsStatus('GPS stream offline')
+    socket.onclose = () => {
+      window.clearInterval(timer)
+      setGpsStatus('GPS stream offline')
+    }
     return () => {
       window.clearInterval(timer)
       socket.close()
@@ -1721,6 +1988,21 @@ export default function App() {
     return (
       <p className='wrap'>Loading… is the backend running on :8000? {msg}</p>
     )
+  if (!data.user?.profile || editingProfile)
+    return (
+      <OperatorProfile
+        initial={data.user?.profile}
+        onSaved={async (user) => {
+          const firstSetup = !data.user?.profile
+          setData((current) => ({ ...current, user }))
+          setEditingProfile(false)
+          if (firstSetup) await run()
+        }}
+        onCancel={
+          data.user?.profile ? () => setEditingProfile(false) : undefined
+        }
+      />
+    )
 
   const W = winOf(data),
     clock = now ?? W.a
@@ -1733,42 +2015,19 @@ export default function App() {
       setMsg(e.message)
     }
   }
-  const run = async () => {
-    setBusy(true)
-    setShown(0)
-    setMsg('')
-    try {
-      const r = await api('/workflow/run', 'POST', {
-        use_llm: useLlm,
-        auto_reply: autoReply,
-        current_time: hhmm(clock),
-      })
-      setData((d) => ({
-        ...d,
-        plan: r.plan,
-        steps: r.steps,
-        outbox: r.outbox,
-        insights: r.insights,
-        guard_log: r.guard_log,
-      }))
-      r.steps.forEach((_, i) =>
-        setTimeout(() => setShown(i + 1), 350 * (i + 1)),
-      )
-      await refresh()
-    } catch (e) {
-      setMsg(e.message)
-    }
-    setBusy(false)
-  }
   const plan = data.plan,
     m = plan?.metrics,
     steps = data.steps || []
   const count = (s) =>
     plan ? plan.actions.filter((a) => a.status === s).length : 0
   const sentCount = data.outbox.filter(
-    (o) => o.status === 'sent' || o.status === 'confirmed',
+    (o) =>
+      (o.status === 'sent' || o.status === 'confirmed') &&
+      o.gateway !== 'mock-gateway',
   ).length
-  const confirmed = data.outbox.filter((o) => o.status === 'confirmed').length
+  const confirmed = data.outbox.filter(
+    (o) => o.status === 'confirmed' && o.gateway !== 'mock-gateway',
+  ).length
   const tabs = [
     ['workflow', 'Workflow'],
     ['plan', '6-hour plan'],
@@ -1829,8 +2088,20 @@ export default function App() {
             {data.campus} · llama3.2:3b via Ollama ·{' '}
             <span className='gps-status'>{gpsStatus}</span>
           </p>
+          <p className='operator-line'>
+            <strong>{data.user.profile.full_name}</strong> ·{' '}
+            {data.user.profile.role} · {data.user.profile.organization} ·{' '}
+            {data.user.profile.email} · {data.user.profile.phone}
+          </p>
         </div>
         <div className='header-actions'>
+          <button
+            className='theme-toggle'
+            type='button'
+            onClick={() => setEditingProfile(true)}
+          >
+            Edit operator details
+          </button>
           <button
             className='theme-toggle'
             type='button'
@@ -1883,9 +2154,16 @@ export default function App() {
           <big>{m ? m.bus_delay_minutes_lost : '—'}</big>min lost by buses
         </div>
         <div>
-          <big>{sentCount}</big>SMS sent ({confirmed} confirmed)
+          <big>{sentCount}</big>SMS delivered ({confirmed} confirmed)
         </div>
       </div>
+      <ActionSummary
+        plan={plan}
+        insights={data.insights}
+        outbox={data.outbox}
+        operator={data.user.profile}
+        briefing={data.last_agent_briefing}
+      />
 
       <nav>
         {tabs.map(([k, l]) => (

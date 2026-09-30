@@ -1187,3 +1187,204 @@ body {
 :root[data-theme='dark'] .dwell-recorder {
   border-color: #354440;
 }
+
+.profile-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(115deg, #f4f7f2 0 58%, #e7f0ed 58% 100%);
+}
+.profile-form {
+  width: min(680px, 100%);
+  padding: 30px;
+  border-top: 4px solid #397d78;
+}
+.profile-form h1 {
+  font-size: 1.65rem;
+}
+.eyebrow {
+  margin: 0 0 5px;
+  color: #397d78;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+.profile-fields label {
+  display: grid;
+  gap: 6px;
+  color: #414a46;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.profile-fields input {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+}
+.profile-actions {
+  margin-top: 20px;
+}
+.operator-line {
+  margin: 4px 0 0;
+  color: #e3f0e9;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+.action-summary {
+  border-left: 4px solid #d27a39;
+}
+.summary-operator {
+  margin: -3px 0 10px;
+  color: #626c66;
+  font-size: 0.82rem;
+}
+.summary-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.summary-heading h2 {
+  margin: 0;
+}
+.summary-heading .eyebrow {
+  margin-bottom: 3px;
+}
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+.summary-stats > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e5e9e5;
+  background: #f7f9f6;
+}
+.summary-stats strong {
+  color: #245f58;
+  font-size: 1.2rem;
+}
+.summary-stats span,
+.summary-decisions > div > span:last-child {
+  color: #626c66;
+  font-size: 0.78rem;
+}
+.summary-decisions {
+  display: grid;
+  gap: 1px;
+  border-top: 1px solid #e5e9e5;
+}
+.summary-decisions > div {
+  display: grid;
+  grid-template-columns: 24px minmax(110px, 0.65fr) minmax(0, 1.35fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 2px;
+  border-bottom: 1px solid #edf0ed;
+}
+.summary-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-weight: 800;
+}
+.moved-mark {
+  color: #216b54;
+  background: #d9eee3;
+}
+.review-mark {
+  color: #8a5019;
+  background: #f8e8cc;
+}
+.kept-mark {
+  color: #245f58;
+  background: #dcece6;
+}
+.summary-messages {
+  border-top: 1px solid #e5e9e5;
+  padding-top: 10px;
+}
+.summary-messages > summary {
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+.summary-messages > div {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.summary-messages article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 10px;
+  padding: 10px;
+  background: #f7f9f6;
+}
+.summary-messages article .pill {
+  margin: 0;
+}
+.summary-messages article p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #626c66;
+  font-size: 0.82rem;
+}
+:root[data-theme='dark'] .profile-shell {
+  background: linear-gradient(115deg, #14201d 0 58%, #1d302c 58% 100%);
+}
+:root[data-theme='dark'] .profile-fields label,
+:root[data-theme='dark'] .summary-stats span,
+:root[data-theme='dark'] .summary-decisions > div > span:last-child {
+  color: #bdcbc5;
+}
+:root[data-theme='dark'] .summary-stats > div {
+  background: #24332f;
+  border-color: #3c514b;
+}
+:root[data-theme='dark'] .summary-stats strong {
+  color: #9ed8c9;
+}
+:root[data-theme='dark'] .summary-operator,
+:root[data-theme='dark'] .summary-messages article p {
+  color: #bdcbc5;
+}
+:root[data-theme='dark'] .summary-messages,
+:root[data-theme='dark'] .summary-messages article {
+  border-color: #354440;
+  background: #24332f;
+}
+:root[data-theme='dark'] .summary-decisions,
+:root[data-theme='dark'] .summary-decisions > div {
+  border-color: #354440;
+}
+@media (max-width: 640px) {
+  .profile-fields {
+    grid-template-columns: 1fr;
+  }
+  .profile-form {
+    padding: 22px;
+  }
+  .summary-heading {
+    align-items: flex-start;
+  }
+  .summary-decisions > div {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+  .summary-decisions > div > span:last-child {
+    grid-column: 2;
+  }
+}
