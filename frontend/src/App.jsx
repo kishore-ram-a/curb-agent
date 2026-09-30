@@ -399,6 +399,16 @@ function OperatorProfile({ initial, onSaved, onCancel }) {
   )
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const fillTestProfile = () => {
+    setProfile({
+      full_name: 'Curb Agent Test Operator',
+      role: 'Traffic operations officer',
+      email: 'operator@example.com',
+      phone: '+91 90000 00000',
+      organization: 'Campus Gate 02 Test Site',
+    })
+    setError('')
+  }
   const submit = async (event) => {
     event.preventDefault()
     setSaving(true)
@@ -422,6 +432,12 @@ function OperatorProfile({ initial, onSaved, onCancel }) {
         <p className='sub'>
           Add the details that will identify your operational actions.
         </p>
+        <div className='profile-test-tools'>
+          <small>Sample values are only saved when you submit the form.</small>
+          <button type='button' className='ghost-btn' onClick={fillTestProfile}>
+            Fill test values
+          </button>
+        </div>
         <div className='profile-fields'>
           <label>
             Full name

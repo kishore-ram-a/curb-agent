@@ -1469,6 +1469,16 @@ body {
 .profile-form h1 {
   font-size: 1.65rem;
 }
+.profile-test-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.profile-test-tools small {
+  font-size: 0.76rem;
+}
 .eyebrow {
   margin: 0 0 5px;
   color: #397d78;
