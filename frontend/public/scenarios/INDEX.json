@@ -1,0 +1,276 @@
+[
+  {
+    "file": "v01_baseline_original.json",
+    "what_it_tests": "Original demo scenario",
+    "agent_result": [
+      {
+        "booking": "T3",
+        "action": "refer_to_inspector",
+        "new_start": null
+      },
+      {
+        "booking": "T4",
+        "action": "keep",
+        "new_start": "11:00"
+      },
+      {
+        "booking": "T2",
+        "action": "keep",
+        "new_start": "11:30"
+      },
+      {
+        "booking": "T1",
+        "action": "reallocate",
+        "new_start": "12:25"
+      }
+    ]
+  },
+  {
+    "file": "v02_no_conflicts.json",
+    "what_it_tests": "Everything compliant",
+    "agent_result": [
+      {
+        "booking": "T3",
+        "action": "refer_to_inspector",
+        "new_start": null
+      },
+      {
+        "booking": "T1",
+        "action": "keep",
+        "new_start": "11:10"
+      },
+      {
+        "booking": "T2",
+        "action": "keep",
+        "new_start": "11:45"
+      }
+    ]
+  },
+  {
+    "file": "v03_freight_in_bus_bay.json",
+    "what_it_tests": "Freight booked in bus bay",
+    "agent_result": [
+      {
+        "booking": "T1",
+        "action": "reallocate",
+        "new_start": "11:15"
+      },
+      {
+        "booking": "T2",
+        "action": "keep",
+        "new_start": "11:30"
+      }
+    ]
+  },
+  {
+    "file": "v04_freight_outside_window.json",
+    "what_it_tests": "Freight before 11:00 and after 13:00",
+    "agent_result": [
+      {
+        "booking": "T1",
+        "action": "reallocate_and_delay",
+        "new_start": "11:00"
+      },
+      {
+        "booking": "T2",
+        "action": "reallocate_and_delay",
+        "new_start": "12:40"
+      }
+    ]
+  },
+  {
+    "file": "v05_no_standing_morning.json",
+    "what_it_tests": "Vehicles during 07:30-08:30 no-standing",
+    "agent_result": [
+      {
+        "booking": "T2",
+        "action": "reallocate_and_delay",
+        "new_start": "11:00"
+      },
+      {
+        "booking": "T1",
+        "action": "refer_to_inspector",
+        "new_start": null
+      }
+    ]
+  },
+  {
+    "file": "v06_school_exit_rush.json",
+    "what_it_tests": "Crowded during school exit",
+    "agent_result": [
+      {
+        "booking": "T3",
+        "action": "reallocate_and_delay",
+        "new_start": "12:10"
+      },
+      {
+        "booking": "T1",
+        "action": "keep",
+        "new_start": "12:35"
+      },
+      {
+        "booking": "T2",
+        "action": "keep",
+        "new_start": "12:40"
+      },
+      {
+        "booking": "T4",
+        "action": "refer_to_inspector",
+        "new_start": null
+      }
+    ]
+  },
+  {
+    "file": "v07_same_slot_double_booking.json",
+    "what_it_tests": "Two vehicles in one slot",
+    "agent_result": [
+      {
+        "booking": "T1",
+        "action": "keep",
+        "new_start": "11:30"
+      },
+      {
+        "booking": "T2",
+        "action": "reallocate",
+        "new_start": "11:40"
+      }
+    ]
+  },
+  {
+    "file": "v08_empty_day.json",
+    "what_it_tests": "No bookings at all",
+    "agent_result": []
+  },
+  {
+    "file": "v09_window_edges.json",
+    "what_it_tests": "Freight exactly at window boundaries (11:00 start, 13:00 end)",
+    "agent_result": [
+      {
+        "booking": "T1",
+        "action": "keep",
+        "new_start": "11:00"
+      },
+      {
+        "booking": "T2",
+        "action": "keep",
+        "new_start": "12:30"
+      }
+    ]
+  },
+  {
+    "file": "v10_personal_only.json",
+    "what_it_tests": "Personal cars only (rulebook mostly silent)",
+    "agent_result": [
+      {
+        "booking": "T1",
+        "action": "refer_to_inspector",
+        "new_start": null
+      },
+      {
+        "booking": "T2",
+        "action": "refer_to_inspector",
+        "new_start": null
+      },
+      {
+        "booking": "T3",
+        "action": "refer_to_inspector",
+        "new_start": null
+      }
+    ]
+  },
+  {
+    "file": "v11_bus_heavy_day.json",
+    "what_it_tests": "Many buses with long dwell times",
+    "agent_result": [
+      {
+        "booking": "T3",
+        "action": "keep",
+        "new_start": "11:00"
+      },
+      {
+        "booking": "T1",
+        "action": "reallocate",
+        "new_start": "11:10"
+      },
+      {
+        "booking": "T2",
+        "action": "reallocate",
+        "new_start": "12:35"
+      }
+    ]
+  },
+  {
+    "file": "v12_two_school_exits.json",
+    "what_it_tests": "Two school exit periods",
+    "agent_result": [
+      {
+        "booking": "T2",
+        "action": "refer_to_inspector",
+        "new_start": null
+      },
+      {
+        "booking": "T1",
+        "action": "keep",
+        "new_start": "11:30"
+      }
+    ]
+  },
+  {
+    "file": "v13_shifted_plan_window.json",
+    "what_it_tests": "Plan window 08:00-14:00",
+    "agent_result": [
+      {
+        "booking": "T3",
+        "action": "refer_to_inspector",
+        "new_start": null
+      },
+      {
+        "booking": "T2",
+        "action": "keep",
+        "new_start": "11:30"
+      },
+      {
+        "booking": "T1",
+        "action": "reallocate",
+        "new_start": "12:25"
+      }
+    ]
+  },
+  {
+    "file": "v14_two_bus_bays.json",
+    "what_it_tests": "Curb layout with two bus bays",
+    "agent_result": [
+      {
+        "booking": "T3",
+        "action": "keep",
+        "new_start": "11:00"
+      },
+      {
+        "booking": "T2",
+        "action": "reallocate",
+        "new_start": "11:30"
+      },
+      {
+        "booking": "T1",
+        "action": "reallocate",
+        "new_start": "12:25"
+      }
+    ]
+  },
+  {
+    "file": "v15_no_school_exit.json",
+    "what_it_tests": "Day without a school exit period",
+    "agent_result": [
+      {
+        "booking": "T1",
+        "action": "keep",
+        "new_start": "11:30"
+      },
+      {
+        "booking": "T2",
+        "action": "keep",
+        "new_start": "12:00"
+      }
+    ]
+  }
+]

@@ -1,0 +1,125 @@
+{
+  "campus": "V14 Two bus bays",
+  "curb_length_m": 10,
+  "plan_window": {
+    "start": "07:30",
+    "end": "13:30"
+  },
+  "slots": [
+    {
+      "id": "BB1",
+      "gate": "Gate 2",
+      "type": "bus_bay",
+      "label": "Bus bay 1",
+      "length_m": 3,
+      "capacity": 1
+    },
+    {
+      "id": "BB2",
+      "gate": "Gate 3",
+      "type": "bus_bay",
+      "label": "Bus bay 2",
+      "length_m": 3,
+      "capacity": 1
+    },
+    {
+      "id": "G1",
+      "gate": "Gate 2",
+      "type": "general",
+      "label": "General slot 1",
+      "length_m": 2,
+      "capacity": 1
+    },
+    {
+      "id": "G2",
+      "gate": "Gate 3",
+      "type": "general",
+      "label": "General slot 2",
+      "length_m": 2,
+      "capacity": 1
+    }
+  ],
+  "school_exit": [
+    {
+      "start": "12:30",
+      "end": "13:00",
+      "expected_cars": 18
+    }
+  ],
+  "bus_trace": [
+    {
+      "id": "B12",
+      "arrives": "07:45",
+      "destination": "Tambaram",
+      "dwell_min": 5,
+      "delay_if_blocked_min": 6
+    },
+    {
+      "id": "B7",
+      "arrives": "09:40",
+      "destination": "Guindy",
+      "dwell_min": 5,
+      "delay_if_blocked_min": 5
+    },
+    {
+      "id": "B12",
+      "arrives": "11:20",
+      "destination": "Tambaram",
+      "dwell_min": 5,
+      "delay_if_blocked_min": 6
+    },
+    {
+      "id": "B21",
+      "arrives": "12:30",
+      "destination": "Velachery",
+      "dwell_min": 20,
+      "delay_if_blocked_min": 7
+    },
+    {
+      "id": "B7",
+      "arrives": "13:10",
+      "destination": "Guindy",
+      "dwell_min": 5,
+      "delay_if_blocked_min": 5
+    }
+  ],
+  "bookings": [
+    {
+      "id": "T1",
+      "vendor": "Sri Sai Traders",
+      "phone": "+91 90000 11111",
+      "vehicle_type": "freight",
+      "slot_id": "BB1",
+      "start": "12:25",
+      "duration": 30
+    },
+    {
+      "id": "T2",
+      "vendor": "Fresh Basket",
+      "phone": "+91 90000 22222",
+      "vehicle_type": "freight",
+      "slot_id": "BB2",
+      "start": "11:30",
+      "duration": 25
+    },
+    {
+      "id": "T3",
+      "vendor": "Kumar Stationers",
+      "phone": "+91 90000 33333",
+      "vehicle_type": "freight",
+      "slot_id": "G1",
+      "start": "11:00",
+      "duration": 30
+    }
+  ],
+  "routes": {
+    "BB1": "Bus lane (Gate 2)",
+    "BB2": "Bus lane (Gate 3)",
+    "G1": "Main road approach",
+    "G2": "Service lane (Gate 3)"
+  },
+  "bus_dispatch": {
+    "name": "School Bus Dispatch",
+    "phone": "+91 90000 55555"
+  }
+}

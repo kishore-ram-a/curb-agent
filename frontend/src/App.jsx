@@ -1468,11 +1468,24 @@ function Ingestion({ refresh }) {
   const [rep, setRep] = useState(null),
     [text, setText] = useState(''),
     [res, setRes] = useState(null),
-    [fileName, setFileName] = useState('')
+    [fileName, setFileName] = useState(''),
+    [presets, setPresets] = useState([]),
+    [presetId, setPresetId] = useState(''),
+    [presetBusy, setPresetBusy] = useState(false),
+    [presetError, setPresetError] = useState('')
   const fileRef = useRef(null)
   const load = async () => setRep(await api('/validate'))
   useEffect(() => {
     load().catch((e) => setRes({ ok: false, errors: [e.message] }))
+  }, [])
+  useEffect(() => {
+    fetch('/scenarios/INDEX.json')
+      .then((response) => {
+        if (!response.ok) throw new Error('Preset index is unavailable.')
+        return response.json()
+      })
+      .then(setPresets)
+      .catch((exception) => setPresetError(exception.message))
   }, [])
   const submit = async (dry) => {
     try {
@@ -1495,6 +1508,8 @@ function Ingestion({ refresh }) {
   const readFile = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
+    setPresetId('')
+    setPresetError('')
     setFileName(file.name)
     setRes(null)
     try {
@@ -1506,6 +1521,40 @@ function Ingestion({ refresh }) {
       })
     }
     event.target.value = ''
+  }
+  const loadPreset = async (fileName) => {
+    if (!fileName) return
+    setPresetId(fileName)
+    setPresetBusy(true)
+    setPresetError('')
+    setRes(null)
+    try {
+      const response = await fetch(`/scenarios/${encodeURIComponent(fileName)}`)
+      if (!response.ok) throw new Error(`Could not load ${fileName}.`)
+      const scenario = await response.json()
+      const validation = await api('/ingest/scenario', 'POST', {
+        scenario,
+        dry_run: true,
+      })
+      if (!validation.ok) {
+        setRes(validation)
+        return
+      }
+      const result = await api('/ingest/scenario', 'POST', {
+        scenario,
+        dry_run: false,
+      })
+      setRes(result)
+      if (!result.ok) return
+      setText(JSON.stringify(scenario, null, 2))
+      setFileName(fileName)
+      await refresh()
+      await load()
+    } catch (exception) {
+      setPresetError(exception.message)
+    } finally {
+      setPresetBusy(false)
+    }
   }
   if (!rep)
     return (
@@ -1598,6 +1647,22 @@ function Ingestion({ refresh }) {
         </div>
 
         <div className='dataset-toolbar'>
+          <label className='dataset-picker-label'>
+            <span>Quick load v01–v15</span>
+            <select
+              value={presetId}
+              disabled={presetBusy || presets.length === 0}
+              onChange={(event) => loadPreset(event.target.value)}
+              aria-label='Load a validated scenario preset'
+            >
+              <option value=''>Choose a scenario</option>
+              {presets.map((preset) => (
+                <option key={preset.file} value={preset.file}>
+                  {preset.file.slice(0, 3)} · {preset.what_it_tests}
+                </option>
+              ))}
+            </select>
+          </label>
           <input
             ref={fileRef}
             className='dataset-file-input'
@@ -1629,8 +1694,19 @@ function Ingestion({ refresh }) {
           >
             Use current data as template
           </button>
-          {fileName && <span className='dataset-filename'>{fileName}</span>}
+          {presetBusy ? (
+            <span className='dataset-filename' role='status'>
+              Validating and loading {presetId}…
+            </span>
+          ) : (
+            fileName && <span className='dataset-filename'>{fileName}</span>
+          )}
         </div>
+        {presetError && (
+          <div className='err' role='alert'>
+            {presetError}
+          </div>
+        )}
 
         <label className='dataset-editor-label' htmlFor='scenario-json-editor'>
           JSON scenario
@@ -1642,6 +1718,7 @@ function Ingestion({ refresh }) {
           onChange={(event) => {
             setText(event.target.value)
             setFileName('')
+            setPresetId('')
             setRes(null)
           }}
           placeholder='Choose a .json file, paste scenario JSON, or load the current dataset as a template.'
@@ -2277,6 +2354,14 @@ export default function App() {
     steps = data.steps || []
   const count = (s) =>
     plan ? plan.actions.filter((a) => a.status === s).length : 0
+  const hardConflictIds = new Set(
+    (plan?.clashes || [])
+      .filter((clash) => clash.severity === 'hard')
+      .map((clash) => clash.booking),
+  )
+  const resolvedConflictCount = (plan?.actions || []).filter(
+    (action) => hardConflictIds.has(action.id) && action.status === 'moved',
+  ).length
   const sentCount = data.outbox.filter(
     (o) =>
       (o.status === 'sent' || o.status === 'confirmed') &&
@@ -2445,24 +2530,49 @@ export default function App() {
 
           {tab === 'workflow' && (
             <section className='overview-panel'>
-              <div className='kpis'>
-                <div>
-                  <big>{count('moved')}</big>re-allocated
+              <section
+                className='impact-dashboard'
+                aria-label='Operational impact'
+              >
+                <div className='impact-heading'>
+                  <div>
+                    <p className='eyebrow'>IMPACT DASHBOARD</p>
+                    <h2>Operational impact</h2>
+                  </div>
+                  <span>
+                    {data.plan_window.start}–{data.plan_window.end}
+                  </span>
                 </div>
-                <div>
-                  <big>{count('inspector')}</big>inspector reviews
+                <div className='impact-grid'>
+                  <article className='impact-metric delay-impact'>
+                    <span className='impact-symbol' aria-hidden='true'>
+                      min
+                    </span>
+                    <div>
+                      <strong>{m?.bus_delay_saved_min ?? '—'}</strong>
+                      <span>bus delay minutes saved</span>
+                    </div>
+                  </article>
+                  <article className='impact-metric conflict-impact'>
+                    <span className='impact-symbol' aria-hidden='true'>
+                      ✓
+                    </span>
+                    <div>
+                      <strong>{plan ? resolvedConflictCount : '—'}</strong>
+                      <span>conflicts resolved</span>
+                    </div>
+                  </article>
+                  <article className='impact-metric inspector-impact'>
+                    <span className='impact-symbol' aria-hidden='true'>
+                      !
+                    </span>
+                    <div>
+                      <strong>{plan ? count('inspector') : '—'}</strong>
+                      <span>inspector referrals</span>
+                    </div>
+                  </article>
                 </div>
-                <div>
-                  <big>{data.insights?.buses_protected ?? '—'}</big>buses
-                  protected
-                </div>
-                <div>
-                  <big>{m ? m.bus_delay_minutes_lost : '—'}</big>min bus delay
-                </div>
-                <div>
-                  <big>{sentCount}</big>SMS delivered
-                </div>
-              </div>
+              </section>
               <ActionSummary
                 plan={plan}
                 insights={data.insights}
