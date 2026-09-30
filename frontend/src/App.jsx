@@ -230,40 +230,160 @@ function DelayBars({ buses }) {
 
 /* ---------------- Login ---------------- */
 function Login({ onDone }) {
-  const [u, setU] = useState('admin'),
-    [p, setP] = useState(''),
-    [err, setErr] = useState('')
+  const [u, setU] = useState(() => {
+    try {
+      return localStorage.getItem('curb-agent-remember-username') === 'true'
+        ? localStorage.getItem('curb-agent-saved-username') || 'admin'
+        : 'admin'
+    } catch {
+      return 'admin'
+    }
+  })
+  const [p, setP] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberUsername, setRememberUsername] = useState(() => {
+    try {
+      return localStorage.getItem('curb-agent-remember-username') === 'true'
+    } catch {
+      return false
+    }
+  })
   const go = async (e) => {
     e.preventDefault()
+    if (busy) return
+    setBusy(true)
+    setErr('')
     try {
       const r = await api('/login', 'POST', { username: u, password: p })
+      try {
+        if (rememberUsername) {
+          localStorage.setItem('curb-agent-remember-username', 'true')
+          localStorage.setItem('curb-agent-saved-username', u)
+        } else {
+          localStorage.removeItem('curb-agent-remember-username')
+          localStorage.removeItem('curb-agent-saved-username')
+        }
+      } catch {}
       setToken(r.token)
       onDone()
     } catch (x) {
       setErr(x.message)
+    } finally {
+      setBusy(false)
     }
   }
   return (
-    <div className='login'>
-      <form onSubmit={go} className='card'>
-        <h1>🚌 Curb Agent</h1>
-        <p className='sub'>Bus-priority &amp; curb-window agent</p>
-        <input
-          value={u}
-          onChange={(e) => setU(e.target.value)}
-          placeholder='Username'
-        />
-        <input
-          type='password'
-          value={p}
-          onChange={(e) => setP(e.target.value)}
-          placeholder='Password'
-        />
-        {err && <div className='err'>{err}</div>}
-        <button>Sign in</button>
-        <small>Demo login: admin / curb@2026</small>
-      </form>
-    </div>
+    <main className='login-shell'>
+      <div className='login-layout'>
+        <section className='login-brand' aria-label='Curb Agent'>
+          <div className='login-brand-lockup'>
+            <span className='login-brand-mark' aria-hidden='true'>
+              C
+            </span>
+            <span>CURB OPERATIONS</span>
+          </div>
+          <p className='login-overline'>CAMPUS GATE 02 · OPERATOR ACCESS</p>
+          <h1>
+            Curb Agent<span>.</span>
+          </h1>
+          <p className='login-brand-caption'>Bus-priority operations console</p>
+        </section>
+
+        <form
+          onSubmit={go}
+          className='login-panel'
+          aria-labelledby='login-title'
+        >
+          <div className='login-panel-heading'>
+            <p className='login-overline'>OPERATOR SIGN-IN</p>
+            <h2 id='login-title'>Welcome back</h2>
+            <p>Sign in to continue to your workspace.</p>
+          </div>
+
+          <label className='login-field' htmlFor='login-username'>
+            <span>Username</span>
+            <input
+              id='login-username'
+              name='username'
+              autoComplete='username'
+              autoCapitalize='none'
+              required
+              value={u}
+              onChange={(e) => setU(e.target.value)}
+              placeholder='Enter your username'
+            />
+          </label>
+
+          <label className='login-field' htmlFor='login-password'>
+            <span>Password</span>
+            <span className='login-password-field'>
+              <input
+                id='login-password'
+                name='password'
+                type={showPassword ? 'text' : 'password'}
+                autoComplete='current-password'
+                required
+                value={p}
+                onChange={(e) => setP(e.target.value)}
+                placeholder='Enter your password'
+              />
+              <button
+                className='login-password-toggle'
+                type='button'
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </span>
+          </label>
+
+          <div className='login-options'>
+            <label className='login-remember'>
+              <input
+                type='checkbox'
+                checked={rememberUsername}
+                onChange={(e) => setRememberUsername(e.target.checked)}
+              />
+              <span>Remember username</span>
+            </label>
+          </div>
+
+          {err && (
+            <div className='login-error' role='alert'>
+              {err}
+            </div>
+          )}
+
+          <button className='login-submit' type='submit' disabled={busy}>
+            <span>{busy ? 'Signing in…' : 'Continue'}</span>
+            {!busy && <span aria-hidden='true'>→</span>}
+          </button>
+
+          <div className='login-demo'>
+            <div>
+              <strong>Demo access</strong>
+              <small>admin / curb@2026</small>
+            </div>
+            <button
+              type='button'
+              className='login-demo-button'
+              onClick={() => {
+                setU('admin')
+                setP('curb@2026')
+                setErr('')
+              }}
+            >
+              Use demo account
+            </button>
+          </div>
+          <p className='login-panel-footer'>Curb Agent · Operator workspace</p>
+        </form>
+      </div>
+    </main>
   )
 }
 
