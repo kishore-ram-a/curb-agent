@@ -89,7 +89,12 @@ const SCENARIOS = [
 ]
 
 /* ---------------- Pictures (inline SVG, no external images) ---------------- */
-const hue = (s) => ([...s].reduce((a, c) => a + c.charCodeAt(0), 0) * 37) % 360
+const VEHICLE_IMAGES = {
+  bus: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=160&h=160&q=75',
+  car: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=160&h=160&q=75',
+  tempo:
+    'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=160&h=160&q=75',
+}
 function Pic({ kind = 'booking', label = '', size = 26 }) {
   const vehicle =
     kind === 'bus'
@@ -99,14 +104,18 @@ function Pic({ kind = 'booking', label = '', size = 26 }) {
         : /parent|personal|car/i.test(label)
           ? 'car'
           : 'tempo'
-  const color =
-    vehicle === 'bus'
-      ? '#1b6a67'
-      : vehicle === 'incident'
-        ? '#bd3d32'
-        : vehicle === 'car'
-          ? '#2866a0'
-          : `hsl(${hue(label)} 48% 38%)`
+  if (vehicle !== 'incident')
+    return (
+      <img
+        className={'pic vehicle-photo vehicle-photo-' + vehicle}
+        width={size}
+        height={size}
+        src={VEHICLE_IMAGES[vehicle]}
+        alt={label || vehicle}
+        loading='lazy'
+        decoding='async'
+      />
+    )
   return (
     <svg
       className='pic'
@@ -118,35 +127,11 @@ function Pic({ kind = 'booking', label = '', size = 26 }) {
     >
       {vehicle === 'incident' ? (
         <g>
-          <path d='M16 3L31 29H1Z' fill={color} />
+          <path d='M16 3L31 29H1Z' fill='#bd3d32' />
           <path d='M16 10v9' stroke='#fff' strokeWidth='2.5' />
           <circle cx='16' cy='23' r='1.4' fill='#fff' />
         </g>
-      ) : vehicle === 'bus' ? (
-        <g>
-          <path d='M4 9a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v14H4z' fill={color} />
-          <path d='M7 9h18v7H7z' fill='#d8efed' />
-          <path d='M7 18h18v3H7z' fill='#fff' />
-          <circle cx='9' cy='24' r='2.2' fill='#222' />
-          <circle cx='23' cy='24' r='2.2' fill='#222' />
-        </g>
-      ) : vehicle === 'car' ? (
-        <g>
-          <path d='M4 18l2-5 4-4h11l4 4 3 2 1 6H3z' fill={color} />
-          <path d='M11 11h9l3 4H8z' fill='#d8e8f5' />
-          <circle cx='9' cy='21' r='2.3' fill='#222' />
-          <circle cx='23' cy='21' r='2.3' fill='#222' />
-        </g>
-      ) : (
-        <g>
-          <path d='M3 11h15v11H3z' fill={color} />
-          <path d='M18 14h6l4 4v4H18z' fill={color} />
-          <path d='M5 13h11v5H5z' fill='#e5eeee' />
-          <path d='M20 15h3l3 3h-6z' fill='#e5eeee' />
-          <circle cx='9' cy='23' r='2.2' fill='#222' />
-          <circle cx='23' cy='23' r='2.2' fill='#222' />
-        </g>
-      )}
+      ) : null}
     </svg>
   )
 }
@@ -531,101 +516,105 @@ function ActionSummary({ plan, insights, outbox, operator, briefing }) {
     <section className='card action-summary' aria-live='polite'>
       <div className='summary-heading'>
         <div>
-          <p className='eyebrow'>LATEST AGENT RUN</p>
-          <h2>Action summary</h2>
+          <p className='eyebrow'>LATEST DECISION BRIEF</p>
+          <p className='summary-operator'>
+            {operator?.full_name} · {operator?.organization}
+          </p>
         </div>
         <span className='badge ok'>
           {plan.checks?.lockup_free ? 'Plan validated' : 'Review plan checks'}
         </span>
       </div>
-      {operator && (
-        <p className='summary-operator'>
-          Prepared by <b>{operator.full_name}</b> · {operator.role} ·{' '}
-          {operator.organization}
-        </p>
-      )}
       <p className='brief'>{briefing || insights.briefing}</p>
-      <div className='summary-stats'>
-        <div>
-          <strong>{moved.length}</strong>
-          <span>re-allocated</span>
-        </div>
-        <div>
-          <strong>{kept.length}</strong>
-          <span>kept in place</span>
-        </div>
-        <div>
-          <strong>{referred.length}</strong>
-          <span>inspector referrals</span>
-        </div>
-        <div>
-          <strong>{delivered.length}</strong>
-          <span>instructions delivered</span>
-        </div>
-        <div>
-          <strong>{simulated.length}</strong>
-          <span>demo instructions simulated</span>
-        </div>
-        <div>
-          <strong>{failed.length}</strong>
-          <span>notifications failed</span>
-        </div>
-        <div>
-          <strong>{plan.metrics?.bus_delay_saved_min ?? 0} min</strong>
-          <span>bus delay avoided</span>
-        </div>
-      </div>
-      {(moved.length > 0 || referred.length > 0 || kept.length > 0) && (
-        <div className='summary-decisions'>
-          {moved.map((action) => (
-            <div key={action.id}>
-              <span className='summary-mark moved-mark'>↗</span>
-              <b>{action.vendor}</b>
-              <span>
-                {action.old_slot} {action.old_start} → {action.slot}{' '}
-                {action.new_start}
-              </span>
-            </div>
-          ))}
-          {referred.map((action) => (
-            <div key={action.id}>
-              <span className='summary-mark review-mark'>!</span>
-              <b>{action.vendor}</b>
-              <span>
-                Referred to inspector · {action.old_slot} {action.old_start}
-              </span>
-            </div>
-          ))}
-          {kept.map((action) => (
-            <div key={action.id}>
-              <span className='summary-mark kept-mark'>✓</span>
-              <b>{action.vendor}</b>
-              <span>
-                Kept in place · {action.slot} {action.new_start}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      {outbox.length > 0 && (
-        <details className='summary-messages'>
-          <summary>Notification details ({outbox.length})</summary>
+      <details className='run-detail-disclosure'>
+        <summary>
+          <span>Review run details</span>
+          <span className='details-count'>
+            {actions.length} decisions · {outbox.length} instructions
+          </span>
+        </summary>
+        <div className='summary-stats'>
           <div>
-            {outbox
-              .slice(-5)
-              .reverse()
-              .map((message) => (
-                <article key={message.id}>
-                  <span className={'pill ' + message.status}>
-                    {message.status}
-                  </span>
-                  <b>{message.to}</b>
-                  <p>{message.text}</p>
-                </article>
-              ))}
+            <strong>{moved.length}</strong>
+            <span>re-allocated</span>
           </div>
-        </details>
-      )}
+          <div>
+            <strong>{kept.length}</strong>
+            <span>kept in place</span>
+          </div>
+          <div>
+            <strong>{referred.length}</strong>
+            <span>inspector referrals</span>
+          </div>
+          <div>
+            <strong>{delivered.length}</strong>
+            <span>instructions delivered</span>
+          </div>
+          <div>
+            <strong>{simulated.length}</strong>
+            <span>demo instructions simulated</span>
+          </div>
+          <div>
+            <strong>{failed.length}</strong>
+            <span>notifications failed</span>
+          </div>
+          <div>
+            <strong>{plan.metrics?.bus_delay_saved_min ?? 0} min</strong>
+            <span>bus delay avoided</span>
+          </div>
+        </div>
+        {(moved.length > 0 || referred.length > 0 || kept.length > 0) && (
+          <div className='summary-decisions'>
+            {moved.map((action) => (
+              <div key={action.id}>
+                <span className='summary-mark moved-mark'>↗</span>
+                <b>{action.vendor}</b>
+                <span>
+                  {action.old_slot} {action.old_start} → {action.slot}{' '}
+                  {action.new_start}
+                </span>
+              </div>
+            ))}
+            {referred.map((action) => (
+              <div key={action.id}>
+                <span className='summary-mark review-mark'>!</span>
+                <b>{action.vendor}</b>
+                <span>
+                  Referred to inspector · {action.old_slot} {action.old_start}
+                </span>
+              </div>
+            ))}
+            {kept.map((action) => (
+              <div key={action.id}>
+                <span className='summary-mark kept-mark'>✓</span>
+                <b>{action.vendor}</b>
+                <span>
+                  Kept in place · {action.slot} {action.new_start}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {outbox.length > 0 && (
+          <details className='summary-messages'>
+            <summary>Notification details ({outbox.length})</summary>
+            <div>
+              {outbox
+                .slice(-5)
+                .reverse()
+                .map((message) => (
+                  <article key={message.id}>
+                    <span className={'pill ' + message.status}>
+                      {message.status}
+                    </span>
+                    <b>{message.to}</b>
+                    <p>{message.text}</p>
+                  </article>
+                ))}
+            </div>
+          </details>
+        )}
+      </details>
     </section>
   )
 }
@@ -690,7 +679,7 @@ function CurfewStrip({ data, plan }) {
 }
 
 /* ---------------- Visual timeline (slots as lanes, with pictures) ---------------- */
-function Timeline({ data, plan, now }) {
+function Timeline({ data, plan, now, playing }) {
   const { a, b, pct } = winOf(data)
   const status = Object.fromEntries(
     (plan?.actions || []).map((x) => [x.id, x.status]),
@@ -784,6 +773,31 @@ function Timeline({ data, plan, now }) {
                   </div>
                 ),
               )}
+            {playing &&
+              plan?.placed
+                .filter(
+                  (placed) =>
+                    placed.slot === sl.id &&
+                    placed.s <= now &&
+                    now < placed.s + placed.dur,
+                )
+                .map((placed) => (
+                  <div
+                    key={'live-' + placed.id}
+                    className='live-vehicle-marker'
+                    style={{ left: pct(now) + '%' }}
+                    title={`${placed.label} active at ${hhmm(now)}`}
+                  >
+                    <Pic
+                      kind={placed.kind === 'bus' ? 'bus' : 'booking'}
+                      label={placed.label}
+                      size={34}
+                    />
+                    <span>
+                      {placed.kind === 'bus' ? placed.label : placed.id}
+                    </span>
+                  </div>
+                ))}
             <div className='nowline' style={{ left: pct(now) + '%' }} />
           </div>
         </div>
@@ -2165,18 +2179,20 @@ export default function App() {
     (o) => o.status === 'confirmed' && o.gateway !== 'mock-gateway',
   ).length
   const tabs = [
-    ['workflow', 'Workflow'],
-    ['plan', '6-hour plan'],
+    ['workflow', 'Overview', '⌂'],
+    ['plan', 'Curb plan', '▦'],
     [
       'inspector',
       `Inspector (${plan?.actions.filter((a) => a.status === 'inspector').length || 0})`,
+      '!',
     ],
-    ['bookings', 'Bookings & scenarios'],
-    ['ingest', 'Live GPS'],
-    ['guard', 'Guardrails & rules'],
-    ['sms', `SMS outbox (${data.outbox.length})`],
-    ['log', 'Audit log'],
+    ['bookings', 'Bookings', '↔'],
+    ['ingest', 'Live GPS', '⌖'],
+    ['guard', 'Rules & guardrails', '◇'],
+    ['sms', `Message outbox (${data.outbox.length})`, '✉'],
+    ['log', 'Audit log', '≡'],
   ]
+  const pageTitle = tabs.find(([key]) => key === tab)?.[1] || 'Overview'
   const exportDecisions = () =>
     downloadCsv('curb-decisions.csv', [
       [
@@ -2216,351 +2232,413 @@ export default function App() {
     ])
 
   return (
-    <div className='wrap'>
-      <header>
-        <div>
-          <h1>🚌 Bus-priority &amp; curb-window agent</h1>
-          <p className='sub'>
-            {data.campus} · <span className='gps-status'>{gpsStatus}</span>
-          </p>
-          <p className='operator-line'>
-            <strong>{data.user.profile.full_name}</strong> ·{' '}
-            {data.user.profile.role} · {data.user.profile.organization} ·{' '}
-            {data.user.profile.email} · {data.user.profile.phone}
-          </p>
+    <div className='app-shell'>
+      <aside className='app-sidebar'>
+        <div className='sidebar-brand'>
+          <span className='sidebar-brand-mark'>C</span>
+          <span>Curb Agent</span>
         </div>
-        <div className='header-actions'>
-          <button
-            className='theme-toggle'
-            type='button'
-            onClick={() => setEditingProfile(true)}
-          >
-            Edit operator details
-          </button>
-          <button
-            className='theme-toggle'
-            type='button'
-            onClick={() =>
-              setTheme((current) => (current === 'light' ? 'dark' : 'light'))
-            }
-            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            aria-pressed={theme === 'dark'}
-            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          >
-            <svg viewBox='0 0 24 24' aria-hidden='true'>
-              {theme === 'light' ? (
-                <path d='M20.1 15.4A8.4 8.4 0 0 1 8.6 3.9 8.5 8.5 0 1 0 20.1 15.4Z' />
-              ) : (
-                <>
-                  <circle cx='12' cy='12' r='4' />
-                  <path d='M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' />
-                </>
-              )}
-            </svg>
-            <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
-          </button>
-          <button
-            className='ghost-btn'
-            onClick={async () => {
-              await api('/logout', 'POST')
-              setToken(null)
-              setAuthed(false)
-            }}
-          >
-            Log out
-          </button>
-        </div>
-      </header>
-
-      <div className='kpis'>
-        <div>
-          <big>{data.bookings.length}</big>bookings
-        </div>
-        <div>
-          <big>{count('moved')}</big>re-allocated
-        </div>
-        <div>
-          <big>{count('inspector')}</big>to the inspector
-        </div>
-        <div>
-          <big>{data.insights?.buses_protected ?? '—'}</big>buses protected
-        </div>
-        <div>
-          <big>{m ? m.bus_delay_minutes_lost : '—'}</big>min lost by buses
-        </div>
-        <div>
-          <big>{sentCount}</big>SMS delivered ({confirmed} confirmed)
-        </div>
-      </div>
-      <ActionSummary
-        plan={plan}
-        insights={data.insights}
-        outbox={data.outbox}
-        operator={data.user.profile}
-        briefing={data.last_agent_briefing}
-      />
-
-      <nav>
-        {tabs.map(([k, l]) => (
-          <button
-            key={k}
-            className={tab === k ? 'on' : ''}
-            onClick={() => setTab(k)}
-          >
-            {l}
-          </button>
-        ))}
-      </nav>
-      {msg && <div className='err'>{msg}</div>}
-
-      {tab === 'workflow' && (
-        <section className='card'>
-          <h2>End-to-end agent workflow</h2>
-          <div className='form'>
-            <button onClick={run} disabled={busy}>
-              {busy ? 'Agent working…' : '▶ Run agent'}
-            </button>
-            <label>
-              <input
-                type='checkbox'
-                checked={useLlm}
-                onChange={(e) => setUseLlm(e.target.checked)}
-              />{' '}
-              use LLM (slower on CPU)
-            </label>
-            <label>
-              <input
-                type='checkbox'
-                checked={autoReply}
-                onChange={(e) => setAutoReply(e.target.checked)}
-              />{' '}
-              simulate vendor replies
-            </label>
+        <p className='sidebar-kicker'>OPERATIONS CONSOLE</p>
+        <nav className='sidebar-nav' aria-label='Primary navigation'>
+          {tabs.map(([key, label, icon]) => (
             <button
-              className='ghost-btn'
-              onClick={() => act(() => api('/reset', 'POST'))}
+              key={key}
+              className={tab === key ? 'nav-item active' : 'nav-item'}
+              aria-current={tab === key ? 'page' : undefined}
+              title={label}
+              onClick={() => setTab(key)}
             >
-              Reset to scenario.json
+              <span className='nav-item-icon' aria-hidden='true'>
+                {icon}
+              </span>
+              <span>{label}</span>
             </button>
-            {plan && (
-              <>
-                <button className='ghost-btn' onClick={exportDecisions}>
-                  Export decisions CSV
+          ))}
+        </nav>
+        <div className='sidebar-footer'>
+          <span
+            className={
+              'connection-dot ' + (gpsStatus.includes('Live') ? 'live' : '')
+            }
+          />
+          <span>{gpsStatus}</span>
+        </div>
+      </aside>
+
+      <main className='workspace'>
+        <header className='workspace-header'>
+          <div className='workspace-heading'>
+            <p className='eyebrow'>{data.campus} · CURB OPERATIONS</p>
+            <h1>{pageTitle}</h1>
+          </div>
+          <div className='workspace-toolbar'>
+            <div className='operator-chip'>
+              <span className='operator-avatar' aria-hidden='true'>
+                {data.user.profile.full_name
+                  .split(/\s+/)
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </span>
+              <span className='operator-chip-copy'>
+                <b>{data.user.profile.full_name}</b>
+                <small>{data.user.profile.role}</small>
+              </span>
+            </div>
+            <div className='header-actions'>
+              <button
+                className='header-control'
+                type='button'
+                onClick={() => setEditingProfile(true)}
+              >
+                Edit profile
+              </button>
+              <button
+                className='header-control theme-toggle'
+                type='button'
+                onClick={() =>
+                  setTheme((current) =>
+                    current === 'light' ? 'dark' : 'light',
+                  )
+                }
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                aria-pressed={theme === 'dark'}
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              >
+                <svg viewBox='0 0 24 24' aria-hidden='true'>
+                  {theme === 'light' ? (
+                    <path d='M20.1 15.4A8.4 8.4 0 0 1 8.6 3.9 8.5 8.5 0 1 0 20.1 15.4Z' />
+                  ) : (
+                    <>
+                      <circle cx='12' cy='12' r='4' />
+                      <path d='M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' />
+                    </>
+                  )}
+                </svg>
+                <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
+              </button>
+              <button
+                className='header-control signout-control'
+                onClick={async () => {
+                  await api('/logout', 'POST')
+                  setToken(null)
+                  setAuthed(false)
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <section className='workspace-content'>
+          {msg && <div className='err'>{msg}</div>}
+
+          {tab === 'workflow' && (
+            <section className='overview-panel'>
+              <div className='kpis'>
+                <div>
+                  <big>{count('moved')}</big>re-allocated
+                </div>
+                <div>
+                  <big>{count('inspector')}</big>inspector reviews
+                </div>
+                <div>
+                  <big>{data.insights?.buses_protected ?? '—'}</big>buses
+                  protected
+                </div>
+                <div>
+                  <big>{m ? m.bus_delay_minutes_lost : '—'}</big>min bus delay
+                </div>
+                <div>
+                  <big>{sentCount}</big>SMS delivered
+                </div>
+              </div>
+              <ActionSummary
+                plan={plan}
+                insights={data.insights}
+                outbox={data.outbox}
+                operator={data.user.profile}
+                briefing={data.last_agent_briefing}
+              />
+              <div className='section-heading'>
+                <div>
+                  <p className='eyebrow'>AUTOMATED WORKFLOW</p>
+                  <h2>Operations overview</h2>
+                </div>
+                <span className='live-status'>
+                  <i className='connection-dot live' /> {gpsStatus}
+                </span>
+              </div>
+              <div className='form workflow-controls'>
+                <button onClick={run} disabled={busy}>
+                  {busy ? 'Agent working…' : '▶ Run agent'}
                 </button>
+                <label>
+                  <input
+                    type='checkbox'
+                    checked={useLlm}
+                    onChange={(e) => setUseLlm(e.target.checked)}
+                  />{' '}
+                  use LLM (slower on CPU)
+                </label>
+                <label>
+                  <input
+                    type='checkbox'
+                    checked={autoReply}
+                    onChange={(e) => setAutoReply(e.target.checked)}
+                  />{' '}
+                  simulate vendor replies
+                </label>
                 <button
                   className='ghost-btn'
-                  onClick={exportSms}
-                  disabled={!data.outbox.length}
+                  onClick={() => act(() => api('/reset', 'POST'))}
                 >
-                  Export SMS log CSV
+                  Reset to scenario.json
                 </button>
-              </>
-            )}
-          </div>
-          <Workflow
-            steps={steps}
-            shown={shown ?? steps.length}
-            running={busy}
-          />
-          {m && (
-            <div className='metrics'>
-              <div>
-                <big>{m.bus_delay_minutes_lost} min</big>lost by buses{' '}
-                <span
-                  className={'badge ' + (m.zero_delay_validated ? 'ok' : 'bad')}
-                >
-                  {m.zero_delay_validated
-                    ? '✓ zero delay validated'
-                    : 'not zero'}
-                </span>
+                {plan && (
+                  <>
+                    <button className='ghost-btn' onClick={exportDecisions}>
+                      Export decisions CSV
+                    </button>
+                    <button
+                      className='ghost-btn'
+                      onClick={exportSms}
+                      disabled={!data.outbox.length}
+                    >
+                      Export SMS log CSV
+                    </button>
+                  </>
+                )}
               </div>
-              <div>
-                <big>{m.bus_delay_saved_min} min</big>bus delay avoided
-              </div>
-              <div>
-                <big>{m.circling_km_avoided} km</big>circling avoided{' '}
-                <small>
-                  ({m.instructions_issued}/{m.displaced_vendors} displaced
-                  vendors instructed)
-                </small>
-              </div>
-              <small>{m.assumption}</small>
-            </div>
-          )}
-          {data.insights && <Insights ins={data.insights} />}
-          {plan && (
-            <>
-              <h3>Clash detector</h3>
-              {plan.clashes.length === 0 ? (
-                <p className='sub'>No clashes detected.</p>
-              ) : (
-                plan.clashes.map((c, i) => (
-                  <div key={i} className={'clash ' + c.severity}>
-                    <b>{CLASH_LABEL[c.type]}</b> {c.text}
-                  </div>
-                ))
-              )}
-              <h3>Bus delay without vs with the agent</h3>
-              <DelayBars buses={plan.buses} />
-              <h3>Decisions</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Vendor</th>
-                    <th>Vehicle</th>
-                    <th>Was</th>
-                    <th>Now</th>
-                    <th>Action</th>
-                    <th>Why (rulebook)</th>
-                    <th>Instruction</th>
-                    <th>km</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {plan.actions.map((a) => (
-                    <tr key={a.id} className={a.status}>
-                      <td>
-                        <span className='dpic'>
-                          <Pic label={a.vendor} size={20} />
-                          {a.vendor}
+              <Workflow
+                steps={steps}
+                shown={shown ?? steps.length}
+                running={busy}
+              />
+              <details className='workflow-analysis'>
+                <summary>
+                  <span>Full plan analysis</span>
+                  <span className='details-count'>
+                    Metrics · clashes · decisions · buses
+                  </span>
+                </summary>
+                <div className='workflow-analysis-content'>
+                  {m && (
+                    <div className='metrics'>
+                      <div>
+                        <big>{m.bus_delay_minutes_lost} min</big>lost by buses{' '}
+                        <span
+                          className={
+                            'badge ' + (m.zero_delay_validated ? 'ok' : 'bad')
+                          }
+                        >
+                          {m.zero_delay_validated
+                            ? '✓ zero delay validated'
+                            : 'not zero'}
                         </span>
-                      </td>
-                      <td>{a.vehicle_type}</td>
-                      <td>
-                        {a.old_slot} {a.old_start}
-                      </td>
-                      <td>
-                        {a.status === 'inspector' ? (
-                          <b className='insp'>{INSPECTOR}</b>
-                        ) : (
-                          `${a.slot} ${a.new_start}`
-                        )}
-                      </td>
-                      <td>{a.action.replace(/_/g, ' ')}</td>
-                      <td>
-                        {a.reasons
-                          .map(
-                            (r) =>
-                              `${r.rule === 'none' || r.rule === 'data' ? '' : r.rule + ': '}${r.text}`,
-                          )
-                          .join(' | ') || 'OK: compliant'}
-                      </td>
-                      <td>{a.reroute || '—'}</td>
-                      <td>{a.circling_km_avoided || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <h3>Buses</h3>
-              {plan.buses.map((b, i) => (
-                <div key={i} className={'bus ' + b.bay}>
-                  {b.bus} {b.arrives} to {b.destination}
-                  {b.school_bus ? ' (school bus)' : ''} — bay {b.bay}
-                  {b.blocked_by && ` (threat: ${b.blocked_by})`}
-                  {b.reroute && ` → ${b.reroute}`}
+                      </div>
+                      <div>
+                        <big>{m.bus_delay_saved_min} min</big>bus delay avoided
+                      </div>
+                      <div>
+                        <big>{m.circling_km_avoided} km</big>circling avoided{' '}
+                        <small>
+                          ({m.instructions_issued}/{m.displaced_vendors}{' '}
+                          displaced vendors instructed)
+                        </small>
+                      </div>
+                      <small>{m.assumption}</small>
+                    </div>
+                  )}
+                  {data.insights && <Insights ins={data.insights} />}
+                  {plan && (
+                    <>
+                      <h3>Clash detector</h3>
+                      {plan.clashes.length === 0 ? (
+                        <p className='sub'>No clashes detected.</p>
+                      ) : (
+                        plan.clashes.map((c, i) => (
+                          <div key={i} className={'clash ' + c.severity}>
+                            <b>{CLASH_LABEL[c.type]}</b> {c.text}
+                          </div>
+                        ))
+                      )}
+                      <h3>Bus delay without vs with the agent</h3>
+                      <DelayBars buses={plan.buses} />
+                      <h3>Decisions</h3>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Vendor</th>
+                            <th>Vehicle</th>
+                            <th>Was</th>
+                            <th>Now</th>
+                            <th>Action</th>
+                            <th>Why (rulebook)</th>
+                            <th>Instruction</th>
+                            <th>km</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {plan.actions.map((a) => (
+                            <tr key={a.id} className={a.status}>
+                              <td>
+                                <span className='dpic'>
+                                  <Pic label={a.vendor} size={20} />
+                                  {a.vendor}
+                                </span>
+                              </td>
+                              <td>{a.vehicle_type}</td>
+                              <td>
+                                {a.old_slot} {a.old_start}
+                              </td>
+                              <td>
+                                {a.status === 'inspector' ? (
+                                  <b className='insp'>{INSPECTOR}</b>
+                                ) : (
+                                  `${a.slot} ${a.new_start}`
+                                )}
+                              </td>
+                              <td>{a.action.replace(/_/g, ' ')}</td>
+                              <td>
+                                {a.reasons
+                                  .map(
+                                    (r) =>
+                                      `${r.rule === 'none' || r.rule === 'data' ? '' : r.rule + ': '}${r.text}`,
+                                  )
+                                  .join(' | ') || 'OK: compliant'}
+                              </td>
+                              <td>{a.reroute || '—'}</td>
+                              <td>{a.circling_km_avoided || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <h3>Buses</h3>
+                      {plan.buses.map((b, i) => (
+                        <div key={i} className={'bus ' + b.bay}>
+                          {b.bus} {b.arrives} to {b.destination}
+                          {b.school_bus ? ' (school bus)' : ''} — bay {b.bay}
+                          {b.blocked_by && ` (threat: ${b.blocked_by})`}
+                          {b.reroute && ` → ${b.reroute}`}
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
-              ))}
-            </>
+              </details>
+            </section>
           )}
-        </section>
-      )}
 
-      {tab === 'plan' && (
-        <section className='card'>
-          <h2>
-            6-hour curb plan{' '}
-            <small>
-              {data.plan_window.start}–{data.plan_window.end}
-            </small>
-          </h2>
-          {plan ? (
-            <>
-              <div className='checks'>
-                <span
-                  className={
-                    'badge ' + (plan.checks.lockup_free ? 'ok' : 'bad')
-                  }
-                >
-                  {plan.checks.lockup_free
-                    ? '✓ no curb lockup'
-                    : '✗ lockup: ' + plan.checks.lockup_details.join(', ')}
-                </span>
-                <span
-                  className={
-                    'badge ' + (plan.checks.curb_boundary_ok ? 'ok' : 'bad')
-                  }
-                >
-                  {plan.checks.curb_length_used_m}/{plan.checks.curb_length_m} m
-                  curb boundary
-                </span>
-                <span
-                  className={
-                    'badge ' + (plan.checks.all_buses_served ? 'ok' : 'bad')
-                  }
-                >
-                  {plan.checks.all_buses_served
-                    ? '✓ every bus served'
-                    : 'a bus has no bay'}
-                </span>
-              </div>
-              <div className='sim'>
-                <button
-                  onClick={() => {
-                    if (clock >= W.b) setNow(W.a)
-                    setPlaying((p) => !p)
-                  }}
-                >
-                  {playing ? '⏸ Pause' : '▶ Simulate'}
-                </button>
-                <input
-                  type='range'
-                  min={W.a}
-                  max={W.b}
-                  value={clock}
-                  onChange={(e) => {
-                    setPlaying(false)
-                    setNow(+e.target.value)
-                  }}
-                />
-                <b>{hhmm(clock)}</b>
-              </div>
-              <h3>Curfew state</h3>
-              <CurfewStrip data={data} plan={plan} />
-              <TrafficPanel traffic={data.traffic} />
-              <CurfewAdmin data={data} act={act} />
-              <h3>Timeline</h3>
-              <Timeline data={data} plan={plan} now={clock} />
-              <NowPanel data={data} plan={plan} now={clock} />
-              <h3>
-                Slot-by-slot occupancy grid <small>(15-minute cells)</small>
-              </h3>
-              <Grid plan={plan} now={clock} />
-              <DwellRecorder data={data} act={act} />
-            </>
-          ) : (
-            <p className='sub'>Run the agent to generate the plan.</p>
+          {tab === 'plan' && (
+            <section className='card'>
+              <h2>
+                6-hour curb plan{' '}
+                <small>
+                  {data.plan_window.start}–{data.plan_window.end}
+                </small>
+              </h2>
+              {plan ? (
+                <>
+                  <div className='checks'>
+                    <span
+                      className={
+                        'badge ' + (plan.checks.lockup_free ? 'ok' : 'bad')
+                      }
+                    >
+                      {plan.checks.lockup_free
+                        ? '✓ no curb lockup'
+                        : '✗ lockup: ' + plan.checks.lockup_details.join(', ')}
+                    </span>
+                    <span
+                      className={
+                        'badge ' + (plan.checks.curb_boundary_ok ? 'ok' : 'bad')
+                      }
+                    >
+                      {plan.checks.curb_length_used_m}/
+                      {plan.checks.curb_length_m} m curb boundary
+                    </span>
+                    <span
+                      className={
+                        'badge ' + (plan.checks.all_buses_served ? 'ok' : 'bad')
+                      }
+                    >
+                      {plan.checks.all_buses_served
+                        ? '✓ every bus served'
+                        : 'a bus has no bay'}
+                    </span>
+                  </div>
+                  <div className='sim'>
+                    <button
+                      onClick={() => {
+                        if (clock >= W.b) setNow(W.a)
+                        setPlaying((p) => !p)
+                      }}
+                    >
+                      {playing ? '⏸ Pause' : '▶ Simulate'}
+                    </button>
+                    <input
+                      type='range'
+                      min={W.a}
+                      max={W.b}
+                      value={clock}
+                      onChange={(e) => {
+                        setPlaying(false)
+                        setNow(+e.target.value)
+                      }}
+                    />
+                    <b>{hhmm(clock)}</b>
+                  </div>
+                  <h3>Curfew state</h3>
+                  <CurfewStrip data={data} plan={plan} />
+                  <TrafficPanel traffic={data.traffic} />
+                  <CurfewAdmin data={data} act={act} />
+                  <h3>Timeline</h3>
+                  <Timeline
+                    data={data}
+                    plan={plan}
+                    now={clock}
+                    playing={playing}
+                  />
+                  <NowPanel data={data} plan={plan} now={clock} />
+                  <h3>
+                    Slot-by-slot occupancy grid <small>(15-minute cells)</small>
+                  </h3>
+                  <Grid plan={plan} now={clock} />
+                  <DwellRecorder data={data} act={act} />
+                </>
+              ) : (
+                <p className='sub'>Run the agent to generate the plan.</p>
+              )}
+            </section>
           )}
-        </section>
-      )}
 
-      {tab === 'bookings' && (
-        <Bookings data={data} refresh={refresh} setMsg={setMsg} run={run} />
-      )}
-      {tab === 'inspector' && (
-        <InspectorPanel data={data} plan={plan} act={act} now={clock} />
-      )}
-      {tab === 'ingest' && <LiveIngestion data={data} gpsStatus={gpsStatus} />}
-      {tab === 'guard' && <Guardrails data={data} />}
-      {tab === 'sms' && <Outbox outbox={data.outbox} act={act} now={clock} />}
-      {tab === 'log' && <AuditLog data={data} />}
-      <div className='toast-stack' aria-live='polite' aria-atomic='false'>
-        {toasts.map((toast) => (
-          <div key={toast.id} className='toast'>
-            <time>{toast.at}</time>
-            {toast.text}
+          {tab === 'bookings' && (
+            <Bookings data={data} refresh={refresh} setMsg={setMsg} run={run} />
+          )}
+          {tab === 'inspector' && (
+            <InspectorPanel data={data} plan={plan} act={act} now={clock} />
+          )}
+          {tab === 'ingest' && (
+            <LiveIngestion data={data} gpsStatus={gpsStatus} />
+          )}
+          {tab === 'guard' && <Guardrails data={data} />}
+          {tab === 'sms' && (
+            <Outbox outbox={data.outbox} act={act} now={clock} />
+          )}
+          {tab === 'log' && <AuditLog data={data} />}
+          <div className='toast-stack' aria-live='polite' aria-atomic='false'>
+            {toasts.map((toast) => (
+              <div key={toast.id} className='toast'>
+                <time>{toast.at}</time>
+                {toast.text}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </section>
+      </main>
     </div>
   )
 }
