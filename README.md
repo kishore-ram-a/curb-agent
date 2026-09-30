@@ -1,62 +1,136 @@
-# Bus-priority & curb-window agent (v2)
+# 🚌 Curb Agent: Bus-Priority & Curb-Window Agent
 
-## Run
+An agentic web app that helps a city officer keep the **bus bay free for buses** by automatically rescheduling delivery vehicles, rerouting around incidents, and drafting SMS notices for approval.
 
-1. Ollama (already a service on Fedora): `ollama pull llama3.2:3b`
-2. Backend: `cd backend && pip install -r requirements.txt && uvicorn main:app --port 8000`
-3. Frontend: `cd frontend && npm install && npm run dev` -> http://localhost:5173
+Built for the *Sustainable Agentic AI* hackathon brief (project #26).
 
-## Deploy the UI on Vercel
+**Live demo:** `https://<your-vercel-domain>.vercel.app`
+**API docs:** `https://curb-agent-api.onrender.com/docs`
 
-Vercel can host the Vite frontend, but this app's API should run on a separate persistent host that supports WebSockets. The backend keeps sessions and current plan state in process memory and uses a writable state file; Vercel Functions do not provide a durable shared process or a WebSocket server for this workflow.
+> The backend runs on Render's free tier and sleeps when idle. The first request can take up to a minute.
 
-1. In Render, create a Blueprint from this repository. `render.yaml` creates the FastAPI web service, a persistent disk mounted at `/var/data`, and `CURB_STATE_FILE=/var/data/state.json`. The API is configured as one paid instance because session tokens are held in memory and Render disks cannot be shared across instances.
-2. After the Render service deploys, copy its HTTPS origin, such as `https://curb-agent-api.onrender.com`.
-3. Import this repository into Vercel with the repository root as the project root. `vercel.json` builds `frontend/` and serves it as a single-page app.
-4. In Vercel Project Settings -> Environment Variables, set `VITE_API_BASE_URL` to the Render HTTPS origin and `VITE_WS_BASE_URL` to its WebSocket origin (replace `https://` with `wss://`). Use origins only, without a trailing slash or `/api` path, then redeploy.
+**Demo login:** `admin` / `curb@2026`
 
-The traffic feed, inspector decisions, and plan recalculation use that external API. If the optional Prisma audit service is enabled, deploy it separately and point `PRISMA_AUDIT_URL` and `PRISMA_AUDIT_REPORT_URL` from the backend to its public HTTPS endpoints. Do not put database credentials in `VITE_*` variables; those are included in browser code.
+---
 
-## Login (demo)
+## The problem
 
-- officer / curb@2026 (run agent, edit bookings, report incidents, send SMS)
-- viewer / view@2026 (read-only)
+Delivery trucks park in the bus bay at the wrong time and delay buses. Fixing this today means manual phone calls and guesswork.
+
+## How it works
+
+The agent runs an end-to-end workflow:
+
+**Ingest → Check rulebook → Replan → Reroute → Draft SMS → Officer approval → Score**
+
+**Example:** tempo `T1` is booked for the bus bay at 12:00, but bus `B21` arrives then.
+
+1. The agent checks the rulebook and detects the conflict.
+2. It moves `T1` to 13:00 and keeps the bay free for the bus.
+3. It drafts an SMS to the vendor explaining the change.
+4. The officer edits and approves it, and the vendor replies "OK".
+5. If an incident blocks the bus bay, the bus is rerouted to a temporary halt at the delivery bay.
 
 ## Features
 
-- End-to-end workflow: Ingest -> Check rulebook -> Replan -> Reroute -> Draft SMS (llama3.2:3b) -> Officer approval -> Score
-- Rerouting: moved tempos get a new lane/route; a live incident in the bus bay reroutes the bus to a temporary halt at the delivery bay
-- SMS outbox: edit drafts, approve & send, simulate vendor reply "OK" (draft -> sent -> confirmed)
-- Visual six-hour timeline (curfews, school exit, buses, original vs new slots)
-- Add/remove bookings, report incidents, audit log, "Ask the rulebook" (unknown -> "Refer to the inspector.")
+- **Six-hour timeline:** curfews, school exit, buses, original vs. new slots
+- **Rerouting:** moved tempos get a new lane or route; incidents reroute buses
+- **SMS outbox:** editable drafts, approve and send, simulated vendor replies (draft → sent → confirmed)
+- **Live operations:** GPS and traffic updates over WebSocket trigger instant replanning
+- **Inspector tab:** approve or reject requests the rulebook doesn't cover
+- **Ask the rulebook:** unknown questions get "Refer to the inspector." instead of a guess
+- **Audit log:** decision history, plus optional daily CSV reports via PostgreSQL
 
-## Real SMS (optional)
+## Tech stack
 
-Set env vars before starting the backend, otherwise a mock gateway is used:
-`export TWILIO_SID=... TWILIO_TOKEN=... TWILIO_FROM=+1...` (mock phone numbers must be replaced with real ones)
+| Layer | Technology | Hosted on |
+|---|---|---|
+| Frontend | React, Vite, Tailwind CSS | Vercel |
+| Backend | FastAPI (Python), WebSockets | Render |
+| AI | Llama 3.2 3B via Ollama (template fallback if unavailable) | Local |
+| Audit (optional) | Node.js, Prisma, PostgreSQL | Separate host |
 
-## PostgreSQL audit service (optional)
+## Project structure
 
-The demo continues to save working state and its short audit log locally. To persist decisions, rulebook enforcements, and SMS events with Prisma:
+```
+curb-agent-v2/
+├── backend/          # FastAPI app: main.py, engine.py, policy.py, agent.py, data/
+├── frontend/         # React + Vite UI
+├── audit-service/    # Optional Prisma + PostgreSQL audit service
+├── render.yaml       # Render blueprint for the backend
+└── README.md
+```
 
-1. Start PostgreSQL and create a database named `curb_audit`.
-2. In `audit-service`, copy `.env.example` to `.env` and set `DATABASE_URL` for that database.
+## Run locally
+
+1. **Ollama** (optional, for AI-written SMS): `ollama pull llama3.2:3b`
+2. **Backend:**
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   uvicorn main:app --port 8000
+   ```
+3. **Frontend:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Open http://localhost:5173 (the dev server proxies `/api` to port 8000).
+
+If Ollama isn't running, the app automatically falls back to template-based SMS drafts.
+
+## Deployment
+
+The frontend and backend deploy separately because the backend keeps sessions in memory and serves WebSockets, which Vercel Functions don't support.
+
+### Backend on Render
+1. Push the repo to GitHub.
+2. In Render, choose **New → Blueprint**, select the repo, and apply `render.yaml`.
+3. Copy the service URL, e.g. `https://curb-agent-api.onrender.com`.
+
+### Frontend on Vercel
+1. Import the repo into Vercel and set the **Root Directory to `frontend`**.
+2. Add these environment variables as **plain text (Config)**, not Secret, for Production and Preview:
+
+   | Key | Value |
+   |---|---|
+   | `VITE_API_BASE_URL` | `https://curb-agent-api.onrender.com` |
+   | `VITE_WS_BASE_URL` | `wss://curb-agent-api.onrender.com` |
+
+   Use origins only, with no trailing slash and no `/api`. The API URL must use `https://`; only the WebSocket URL uses `wss://`.
+3. Redeploy after any variable change, because Vite bakes them in at build time.
+4. To make the site public, set **Settings → Deployment Protection → Vercel Authentication** to *Disabled*.
+
+## Optional integrations
+
+**Real SMS (Twilio):** set these on the backend, otherwise a mock gateway is used.
+```bash
+export TWILIO_SID=... TWILIO_TOKEN=... TWILIO_FROM=+1...
+```
+
+**PostgreSQL audit service:**
+1. Create a database named `curb_audit`.
+2. In `audit-service`, copy `.env.example` to `.env` and set `DATABASE_URL`.
 3. Run `npm install`, `npm run db:generate`, `npm run db:push`, then `npm start`.
-4. Start the backend normally. It forwards audit events to `http://127.0.0.1:8100`; the Audit log tab can generate and download daily CSV reports.
+4. Point the backend at it with `PRISMA_AUDIT_URL` and `PRISMA_AUDIT_REPORT_URL`.
 
-The audit service binds to loopback by default. Configure `AUDIT_HOST` only when you intentionally need remote access.
-
-## Live operations
-
-- The frontend sends mock GPS points over `/api/ws/live`; bus/tempo location updates are accepted continuously.
-- GPS frames may include `speed_kmh`, `delay_min`, `traffic_level`, `scheduled_arrival` or `booking_id`, and `simulation_time`; changed bus/tempo times immediately replan the active six-hour schedule.
-- Use the Inspector tab to approve or reject rulebook-unknown requests. Clicking a free 15-minute grid cell chooses an approval slot.
-- The 6-hour plan tab can override the freight window and record observed dwell times; both changes recalculate the plan immediately.
-- SMS replies accept natural language. A late reply shifts its linked booking and recalculates the plan.
+Never put database credentials or API keys in `VITE_*` variables; they are visible in the browser.
 
 ## Demo script
 
-1. Login as officer -> Run agent: T1 moved 12:00->13:00, bus bay kept for B21, two SMS drafts.
-2. Bookings tab -> Report incident (bus bay, 09:38, 15 min) -> Run agent: B7 rerouted to delivery bay.
-3. SMS outbox -> Approve & send all -> simulate reply.
-4. Rulebook tab -> ask something unregistered -> "Refer to the inspector."
+1. Log in and click **Run agent**: T1 moves from 12:00 to 13:00, the bus bay is kept for B21, and two SMS drafts appear.
+2. **Bookings** tab → report an incident (bus bay, 09:38, 15 min) → **Run agent**: B7 is rerouted to the delivery bay.
+3. **SMS outbox** → approve and send all → simulate a reply.
+4. **Rulebook** tab → ask something unregistered → "Refer to the inspector."
+
+## Known limitations
+
+- Ollama isn't available on the hosted backend, so SMS drafts use templates there.
+- State resets when the free Render instance restarts.
+- The single demo account is public and CORS is open (`*`); tighten both before real use.
+- Sessions are held in memory, so a restart logs everyone out.
+
+## Author
+
+Built by Ram ([@kishore-ram-a](https://github.com/kishore-ram-a)) for the SRM hackathon.
