@@ -31,12 +31,14 @@ KEYS = ("scenario", "bookings", "incidents", "outbox", "plan", "steps", "insight
 
 def reset_state(scenario=None):
     sc = deepcopy(scenario) if scenario else policy.load_scenario_file()
+    operator_profile = STATE.get("operator_profile")
     STATE.clear()
     STATE.update(scenario=sc, bookings=deepcopy(sc["bookings"]), incidents=[], outbox=[], plan=None, steps=[],
                  insights=None, log=[], guard_log=[], curfew_overrides={}, inspector_decisions={},
                  dwell_history={}, live_gps=[], traffic={},
                  traffic_base_arrivals=[b["arrives"] for b in sc["bus_trace"]],
-                 traffic_base_starts={b["id"]: b["start"] for b in sc["bookings"]})
+                 traffic_base_starts={b["id"]: b["start"] for b in sc["bookings"]},
+                 operator_profile=operator_profile, last_agent_briefing=None)
 
 def save_state():
     try:
@@ -56,6 +58,8 @@ def load_state():
         data.setdefault("traffic", {})
         data.setdefault("traffic_base_arrivals", [b["arrives"] for b in data["scenario"]["bus_trace"]])
         data.setdefault("traffic_base_starts", {b["id"]: b["start"] for b in data["bookings"]})
+        data.setdefault("operator_profile", None)
+        data.setdefault("last_agent_briefing", None)
         STATE.clear(); STATE.update(data)
         return True
     except Exception:
@@ -152,6 +156,7 @@ def deliver(phone, text):
 
 # ---------- models ----------
 class Login(BaseModel): username: str; password: str
+class ProfileIn(BaseModel): full_name: str; role: str; email: str; phone: str; organization: str
 class BookingIn(BaseModel): vendor: str; phone: str = "+91 90000 00000"; vehicle_type: str = "freight"; slot_id: str; start: str; duration: int
 class IncidentIn(BaseModel): slot_id: str; start: str; duration: int; reason: str = "Vehicle blocking"
 class AskReq(BaseModel): question: str
@@ -171,8 +176,20 @@ def login(req: Login):
     if not pw or not secrets.compare_digest(pw, _h(req.password)):
         raise HTTPException(401, "Invalid username or password")
     tok = secrets.token_hex(16)
-    SESSIONS[tok] = {"name": req.username}
+    SESSIONS[tok] = {"name": req.username, "profile": deepcopy(STATE.get("operator_profile"))}
     return {"token": tok, "name": req.username}
+
+@app.post("/api/profile")
+def save_profile(req: ProfileIn, u=Depends(current_user)):
+    profile = {key: value.strip() for key, value in req.model_dump().items()}
+    if not all(profile.values()):
+        raise HTTPException(422, "All operator profile fields are required")
+    if len(profile["full_name"]) > 100 or len(profile["organization"]) > 120:
+        raise HTTPException(422, "Name or organization is too long")
+    u["profile"] = profile
+    STATE["operator_profile"] = profile
+    save_state()
+    return {"user": u}
 
 @app.post("/api/logout")
 def logout(authorization: str = Header(None)):
@@ -188,6 +205,7 @@ def public_state(u):
                          "immutable": True, "forbidden_actions": RULEBOOK["forbidden_actions"]},
             **{k: STATE[k] for k in ("bookings", "incidents", "outbox", "plan", "steps", "insights", "guard_log")},
             **{k: STATE[k] for k in ("curfew_overrides", "inspector_decisions", "dwell_history", "live_gps", "traffic")},
+            "last_agent_briefing": STATE["last_agent_briefing"],
             "log": STATE["log"][-25:], "user": u}
 
 def replan_state():
@@ -508,6 +526,7 @@ def run_workflow(req: RunReq, u=Depends(current_user)):
 
     ck = plan["checks"]
     STATE["plan"], STATE["insights"] = plan, ins
+    STATE["last_agent_briefing"] = ins["briefing"]
     STATE["steps"] = [
         {"name": "Ingest & validate", "status": "done", "detail": f"rulebook v{RULEBOOK['version']} verified (sha256 {RULEBOOK_HASH[:10]}); scenario valid: {len(sc['slots'])} slots, {len(sc['bus_trace'])} bus arrivals, {len(STATE['bookings'])} bookings"},
         {"name": "Enforce rulebook", "status": "done", "detail": f"{len([a for a in acts if any(r['rule'].startswith('R') for r in a['reasons'])])} request(s) breach a rule; {len(inspector)} not covered: {INSPECTOR if inspector else 'none'}"},
@@ -519,7 +538,8 @@ def run_workflow(req: RunReq, u=Depends(current_user)):
     ]
     log(u, f"Ran workflow: {len(moved)} moved, {len(inspector)} to inspector, {len(sent)} SMS auto-sent")
     save_state()
-    return {"plan": plan, "steps": STATE["steps"], "outbox": STATE["outbox"], "insights": ins, "guard_log": STATE["guard_log"]}
+    return {"plan": plan, "steps": STATE["steps"], "outbox": STATE["outbox"], "insights": ins,
+            "last_agent_briefing": STATE["last_agent_briefing"], "guard_log": STATE["guard_log"]}
 
 def _msg(mid):
     for o in STATE["outbox"]:
