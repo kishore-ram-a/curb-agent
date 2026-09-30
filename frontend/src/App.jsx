@@ -2085,8 +2085,7 @@ export default function App() {
         <div>
           <h1>🚌 Bus-priority &amp; curb-window agent</h1>
           <p className='sub'>
-            {data.campus} · llama3.2:3b via Ollama ·{' '}
-            <span className='gps-status'>{gpsStatus}</span>
+            {data.campus} · <span className='gps-status'>{gpsStatus}</span>
           </p>
           <p className='operator-line'>
             <strong>{data.user.profile.full_name}</strong> ·{' '}
