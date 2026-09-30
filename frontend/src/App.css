@@ -2075,6 +2075,168 @@ body {
   border-radius: 5px;
   background: #fff;
 }
+.dataset-workbench {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 7px;
+  background: var(--workspace-surface);
+  box-shadow: 0 2px 8px rgb(28 48 36 / 4%);
+}
+.dataset-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.dataset-heading h2 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+.dataset-heading .sub {
+  max-width: 680px;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.dataset-format {
+  flex: none;
+  padding: 6px 9px;
+  border: 1px solid #d4e2f5;
+  border-radius: 4px;
+  background: #f1f6ff;
+  color: #315b90;
+  font-size: 0.69rem;
+  font-weight: 750;
+}
+.dataset-toolbar,
+.dataset-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.dataset-file-input {
+  display: none;
+}
+.dataset-filename {
+  overflow: hidden;
+  max-width: min(360px, 100%);
+  color: var(--workspace-muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dataset-editor-label {
+  color: var(--workspace-text);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+.dataset-editor {
+  width: 100%;
+  min-height: 340px;
+  resize: vertical;
+  border: 1px solid var(--workspace-border);
+  border-radius: 5px;
+  background: #f8faff;
+  color: #25364d;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  tab-size: 2;
+}
+.dataset-editor:focus-visible {
+  border-color: #6d9cde;
+  outline: 3px solid rgb(37 99 199 / 13%);
+}
+.dataset-help,
+.dataset-warning {
+  margin: -8px 0 0;
+  color: var(--workspace-muted);
+  font-size: 0.73rem;
+  line-height: 1.5;
+}
+.dataset-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #d7e4f6;
+  border-radius: 4px;
+  background: #f3f7ff;
+  color: #405771;
+  font-size: 0.74rem;
+}
+.dataset-preview strong {
+  margin-right: auto;
+  color: #1e3d68;
+}
+.dataset-actions {
+  justify-content: flex-end;
+  padding-top: 13px;
+  border-top: 1px solid var(--workspace-border);
+}
+.dataset-actions .primary-control,
+.dataset-toolbar .primary-control {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #1d5bb3;
+  border-radius: 5px;
+  background: #2568c8;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.dataset-actions .primary-control:hover:not(:disabled),
+.dataset-toolbar .primary-control:hover:not(:disabled) {
+  background: #1d55a8;
+}
+.dataset-actions .primary-control:disabled,
+.dataset-toolbar .primary-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+.dataset-actions .header-control,
+.dataset-toolbar .header-control {
+  min-height: 36px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 5px;
+  background: #fff;
+  color: #344b68;
+  font-size: 0.76rem;
+}
+.dataset-warning {
+  margin: -6px 0 0;
+  color: #855a25;
+}
+:root[data-theme='dark'] .dataset-workbench {
+  border-color: var(--workspace-border);
+  background: var(--workspace-surface);
+}
+:root[data-theme='dark'] .dataset-format,
+:root[data-theme='dark'] .dataset-preview {
+  border-color: #3d5c7f;
+  background: #21364e;
+  color: #cadcf3;
+}
+:root[data-theme='dark'] .dataset-preview strong {
+  color: #e5efff;
+}
+:root[data-theme='dark'] .dataset-editor {
+  border-color: var(--workspace-border);
+  background: #142235;
+  color: #e0eafb;
+}
+:root[data-theme='dark'] .dataset-actions .header-control,
+:root[data-theme='dark'] .dataset-toolbar .header-control {
+  border-color: var(--workspace-border);
+  background: #24364b;
+  color: #e0eafb;
+}
+:root[data-theme='dark'] .dataset-warning {
+  color: #e3bd81;
+}
 .workspace-content > .toast-stack {
   position: fixed;
   z-index: 40;
@@ -2371,6 +2533,22 @@ body {
     max-width: 130px;
     overflow: hidden;
     white-space: nowrap;
+  }
+  .dataset-workbench {
+    padding: 16px 13px;
+  }
+  .dataset-heading {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dataset-editor {
+    min-height: 260px;
+  }
+  .dataset-actions {
+    justify-content: stretch;
+  }
+  .dataset-actions > button {
+    flex: 1 1 130px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

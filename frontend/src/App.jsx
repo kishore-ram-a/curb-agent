@@ -1467,15 +1467,20 @@ function TrafficPanel({ traffic = {} }) {
 function Ingestion({ refresh }) {
   const [rep, setRep] = useState(null),
     [text, setText] = useState(''),
-    [res, setRes] = useState(null)
+    [res, setRes] = useState(null),
+    [fileName, setFileName] = useState('')
+  const fileRef = useRef(null)
   const load = async () => setRep(await api('/validate'))
   useEffect(() => {
     load().catch((e) => setRes({ ok: false, errors: [e.message] }))
   }, [])
   const submit = async (dry) => {
     try {
+      const scenario = JSON.parse(text)
+      if (!scenario || typeof scenario !== 'object' || Array.isArray(scenario))
+        throw new Error('The JSON root must be a scenario object.')
       const r = await api('/ingest/scenario', 'POST', {
-        scenario: JSON.parse(text),
+        scenario,
         dry_run: dry,
       })
       setRes(r)
@@ -1487,6 +1492,21 @@ function Ingestion({ refresh }) {
       setRes({ ok: false, errors: [e.message] })
     }
   }
+  const readFile = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setFileName(file.name)
+    setRes(null)
+    try {
+      setText(await file.text())
+    } catch {
+      setRes({
+        ok: false,
+        errors: ['Could not read this file. Choose a JSON file and try again.'],
+      })
+    }
+    event.target.value = ''
+  }
   if (!rep)
     return (
       <section className='card'>
@@ -1495,10 +1515,23 @@ function Ingestion({ refresh }) {
     )
   const sc = rep.scenario,
     rb = rep.rulebook
+  let draft = null
+  let draftError = ''
+  if (text.trim()) {
+    try {
+      draft = JSON.parse(text)
+      if (!draft || typeof draft !== 'object' || Array.isArray(draft))
+        throw new Error('The JSON root must be an object.')
+    } catch (exception) {
+      draftError = exception.message
+    }
+  }
+  const canSubmit = Boolean(text.trim() && draft && !draftError)
   return (
     <>
       <section className='card'>
-        <h2>Ingestion &amp; schema validation</h2>
+        <p className='eyebrow'>ACTIVE DATASET</p>
+        <h2>Scenario validation</h2>
         <div className='tiles'>
           <div>
             <big>{rb.ok ? '✓ valid' : '✗ invalid'}</big>rulebook.json v
@@ -1551,53 +1584,127 @@ function Ingestion({ refresh }) {
           ))}
         </ul>
       </section>
-      <section className='card'>
-        <h2>Load a different scenario.json</h2>
-        <p className='sub'>
-          Vehicle types: bus / freight / personal · slot types: bus_bay /
-          general. Nothing is loaded unless it passes validation.
-        </p>
-        <div className='form'>
-          <button
-            className='ghost-btn'
-            onClick={async () =>
-              setText(JSON.stringify(await api('/scenario'), null, 2))
-            }
-          >
-            Load current scenario into editor
-          </button>
-          <button
-            className='ghost-btn'
-            onClick={() => submit(true)}
-            disabled={!text}
-          >
-            Validate only
-          </button>
-          <button onClick={() => submit(false)} disabled={!text}>
-            Validate &amp; load
-          </button>
+      <section className='dataset-workbench'>
+        <div className='dataset-heading'>
+          <div>
+            <p className='eyebrow'>CUSTOM DATASET</p>
+            <h2>Load scenario JSON</h2>
+            <p className='sub'>
+              Import a new campus, curb layout, bus schedule, and bookings. The
+              shared rulebook stays active for every dataset.
+            </p>
+          </div>
+          <span className='dataset-format'>JSON · 6-hour plan</span>
         </div>
+
+        <div className='dataset-toolbar'>
+          <input
+            ref={fileRef}
+            className='dataset-file-input'
+            type='file'
+            accept='.json,application/json'
+            onChange={readFile}
+            aria-label='Choose scenario JSON file'
+          />
+          <button
+            className='primary-control'
+            type='button'
+            onClick={() => fileRef.current?.click()}
+          >
+            Choose JSON file
+          </button>
+          <button
+            className='header-control'
+            type='button'
+            onClick={async () => {
+              try {
+                const scenario = await api('/scenario')
+                setText(JSON.stringify(scenario, null, 2))
+                setFileName('Current scenario template')
+                setRes(null)
+              } catch (exception) {
+                setRes({ ok: false, errors: [exception.message] })
+              }
+            }}
+          >
+            Use current data as template
+          </button>
+          {fileName && <span className='dataset-filename'>{fileName}</span>}
+        </div>
+
+        <label className='dataset-editor-label' htmlFor='scenario-json-editor'>
+          JSON scenario
+        </label>
         <textarea
-          className='code'
+          id='scenario-json-editor'
+          className='code dataset-editor'
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder='Paste scenario.json here'
+          onChange={(event) => {
+            setText(event.target.value)
+            setFileName('')
+            setRes(null)
+          }}
+          placeholder='Choose a .json file, paste scenario JSON, or load the current dataset as a template.'
+          spellCheck='false'
+          aria-describedby='dataset-help'
         />
+        <p className='dataset-help' id='dataset-help'>
+          Include campus, curb length, a six-hour plan window, slots, bus trace,
+          bookings, school exit windows, and bus dispatch details.
+        </p>
+
+        {draftError && text.trim() && (
+          <div className='err' role='alert'>
+            Invalid JSON: {draftError}
+          </div>
+        )}
+        {draft && !draftError && (
+          <div className='dataset-preview' aria-live='polite'>
+            <strong>{draft.campus || 'Untitled dataset'}</strong>
+            <span>{draft.slots?.length || 0} slots</span>
+            <span>{draft.bus_trace?.length || 0} bus arrivals</span>
+            <span>{draft.bookings?.length || 0} bookings</span>
+            <span>
+              {draft.plan_window?.start || '—'}–{draft.plan_window?.end || '—'}
+            </span>
+          </div>
+        )}
+
+        {res?.errors?.map((error, index) => (
+          <div key={index} className='err' role='alert'>
+            {error}
+          </div>
+        ))}
         {res &&
           (res.ok ? (
             <div className='okbox'>
-              ✓ Scenario is valid
               {res.loaded
-                ? ' and has been loaded. Bookings and the plan were reset.'
-                : '.'}
+                ? 'Dataset loaded. Run the agent from Overview to create its plan.'
+                : 'JSON is valid and ready to load.'}
             </div>
-          ) : (
-            res.errors.map((e, i) => (
-              <div key={i} className='err'>
-                {e}
-              </div>
-            ))
-          ))}
+          ) : null)}
+        <div className='dataset-actions'>
+          <button
+            className='header-control'
+            type='button'
+            onClick={() => submit(true)}
+            disabled={!canSubmit}
+          >
+            Validate only
+          </button>
+          <button
+            className='primary-control'
+            type='button'
+            onClick={() => submit(false)}
+            disabled={!canSubmit}
+          >
+            Validate &amp; apply dataset
+          </button>
+        </div>
+        <p className='dataset-warning'>
+          Applying valid JSON replaces the active scenario and resets its
+          bookings, plan, and notification queue.
+        </p>
       </section>
     </>
   )
@@ -2188,6 +2295,7 @@ export default function App() {
     ],
     ['bookings', 'Bookings', '↔'],
     ['ingest', 'Live GPS', '⌖'],
+    ['datasets', 'Datasets', '▤'],
     ['guard', 'Rules & guardrails', '◇'],
     ['sms', `Message outbox (${data.outbox.length})`, '✉'],
     ['log', 'Audit log', '≡'],
@@ -2624,6 +2732,7 @@ export default function App() {
           {tab === 'ingest' && (
             <LiveIngestion data={data} gpsStatus={gpsStatus} />
           )}
+          {tab === 'datasets' && <Ingestion refresh={refresh} />}
           {tab === 'guard' && <Guardrails data={data} />}
           {tab === 'sms' && (
             <Outbox outbox={data.outbox} act={act} now={clock} />
